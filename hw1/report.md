@@ -31,7 +31,7 @@ b09902004 資工三 郭懷元
 
 ### Different fields
 
-- Flags (only in TCP)
+- Header Length (only in TCP)
 - Sequence number (only in TCP)
 - Acknowledgement number (only in TCP)
 
