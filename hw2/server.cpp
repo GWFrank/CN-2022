@@ -1,62 +1,53 @@
-#include"server.h"
+#include "server.h"
+#include "pkt_util.h"
 
 #include <opencv2/opencv.hpp>
 
-#include<stdio.h>
-#include<sys/socket.h>
-#include<arpa/inet.h>
-#include<sys/ioctl.h>
-#include<net/if.h>
-#include<unistd.h> 
-#include<string.h>
-#include<stdlib.h>
-#include<pthread.h>
-#include<vector>
+#include <stdio.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <sys/ioctl.h>
+#include <net/if.h>
+#include <unistd.h> 
+#include <string.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <signal.h>
+#include <pthread.h>
+#include <vector>
 
-#define BUFF_SIZE 1024
-#define PORT 8787
-#define ERR_EXIT(a){ perror(a); exit(1); }
-#define LL long long
+#define PORT 7654
 
-void* serve_client(void* arg) {
-    struct clientInfo cinfo = *(struct clientInfo *)arg;
-    char buffer[2 * BUFF_SIZE] = {};
-    int write_byte;
-    
-    // cv::Mat server_img;
-    // cv::VideoCapture cap("./video.mpg");
-    // int width = cap.get(cv::CAP_PROP_FRAME_WIDTH);
-    // int height = cap.get(cv::CAP_PROP_FRAME_HEIGHT);
-    // printf("[info] Video resolution: %d, %d\n", width, height);
+const char SHELL_SYMBOL[] = "$ ";
 
-    // server_img = cv::Mat::zeros(height, width, CV_8UC3);
-    // if (!server_img.isContinuous()) {
-    //     server_img = server_img.clone();
-    // }
+void* srv_interact(void* arg) {
+    clientInfo cinfo = *(clientInfo *)arg; // Includes tid for debugging
+    char out_buf[MAX_BUF_SIZE] = "";
+    char in_buf[MAX_BUF_SIZE] = "";
+    // snprintf(out_buf, MAX_BUF_SIZE, "Welcome to the server!\n");
+    // send_str(cinfo.sock_fd, out_buf);
 
-    // while (1) {
-    //     cap >> server_img;
-    //     // int imgSize = 
-    // }
-
-    char message[BUFF_SIZE] = "Hello World from Server";
-    sprintf(buffer, "%s\n", message);
-    if((write_byte = send(cinfo.sock_fd, buffer, strlen(buffer), 0)) < 0){
-        ERR_EXIT("write failed\n");
+    // Shell loop
+    while (1) {
+        snprintf(out_buf, MAX_BUF_SIZE, SHELL_SYMBOL);
+        if (send_str(cinfo.sock_fd, out_buf) == 1) {
+            break;
+        }
+        if (recv_str(cinfo.sock_fd, in_buf) == 1) {
+            break;
+        }
+        printf("Client sent '%s'\n", in_buf);
     }
-    printf("[info] thread %lu sent %d to fd %d\n", cinfo.tid, write_byte, cinfo.sock_fd);
-
-
+    
     close(cinfo.sock_fd);
     pthread_exit(NULL);
 }
 
 int main(int argc, char *argv[]){
-    int server_sockfd, client_sockfd; //, write_byte;
+
+    int server_sockfd, client_sockfd; 
     struct sockaddr_in server_addr, client_addr;
     int client_addr_len = sizeof(client_addr);
-    // char buffer[2 * BUFF_SIZE] = {};
-    // char message[BUFF_SIZE] = "Hello World from Server";
 
     // Get socket file descriptor
     if((server_sockfd = socket(AF_INET , SOCK_STREAM , 0)) < 0){
@@ -79,29 +70,20 @@ int main(int argc, char *argv[]){
         ERR_EXIT("listen failed\n");
     }
 
+    // Get client loop
     std::vector<clientInfo> clients(0);
     while (1) {
         // Accept the client and get client file descriptor
         if((client_sockfd = accept(server_sockfd, (struct sockaddr *)&client_addr, (socklen_t*)&client_addr_len)) < 0){
             ERR_EXIT("accept failed\n");
         }
-        printf("[info] new connection accepted\n");
-        struct clientInfo cinfo;
-        cinfo.sock_fd = client_sockfd;
-        clients.push_back(cinfo);
-        int l_idx = clients.size()-1;
-        pthread_create(&clients[l_idx].tid, NULL, &serve_client, (void*)&clients[l_idx]);
+        fprintf(stderr, "[info] new connection accepted\n");
+        clients.push_back(clientInfo(client_sockfd));
+        clientInfo* new_cl_p = &clients[clients.size()-1];
+        pthread_create(&(new_cl_p->tid), NULL, &srv_interact, (void*)new_cl_p);
+        pthread_detach(new_cl_p->tid);
     }
-    
-    // sprintf(buffer, "%s\n", message);
-    // if((write_byte = send(client_sockfd, buffer, strlen(buffer), 0)) < 0){
-    //     ERR_EXIT("write failed\n");
-    // }
-    // close(client_sockfd);
 
-    for (auto &cl:clients) {
-        pthread_join(cl.tid, NULL);
-    }
     close(server_sockfd);
     return 0;
 }
