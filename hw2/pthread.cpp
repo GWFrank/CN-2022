@@ -17,12 +17,14 @@ int main(int argc, char *argv[]){
 		pthread_create(&tid[i], NULL, &do_something, (void*)input);
 	}
 	
-	for(int i = 0 ; i < THREAD_NUM; i++){
-		// wait a thread to be finished
-		// pthread_join(ptr to a pthread_id, NULL)
-		pthread_join(tid[i], NULL);
-        printf("[Index %d] join pthread id %ld\n", i, tid[i]);
-	}
+	// for(int i = 0 ; i < THREAD_NUM; i++){
+	// 	// wait a thread to be finished
+	// 	// pthread_join(ptr to a pthread_id, NULL)
+	// 	pthread_join(tid[i], NULL);
+    //     printf("[Index %d] join pthread id %ld\n", i, tid[i]);
+	// }
+    pthread_exit(NULL);
+    return 0;
 }
 
 void *do_something(void *arg){
