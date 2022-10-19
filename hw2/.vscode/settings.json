@@ -16,6 +16,13 @@
         "stop_token": "cpp",
         "streambuf": "cpp",
         "tuple": "cpp",
-        "*.inc": "cpp"
+        "*.inc": "cpp",
+        "cstdio": "cpp",
+        "cstdint": "cpp",
+        "memory": "cpp",
+        "future": "cpp",
+        "utility": "cpp",
+        "variant": "cpp",
+        "cstring": "cpp"
     }
 }

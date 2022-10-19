@@ -1,4 +1,5 @@
-#include "opencv2/opencv.hpp"
+#include <opencv2/opencv.hpp>
+
 #include <iostream>
 
 using namespace std;
@@ -11,6 +12,7 @@ int main(int argc, char *argv[]) {
     // Get the resolution of the video
     int width = cap.get(CAP_PROP_FRAME_WIDTH);
     int height = cap.get(CAP_PROP_FRAME_HEIGHT);
+    double frame_time = 1000/cap.get(cv::CAP_PROP_FPS);
     cout << "Video resolution: " << width << ", " << height << endl;
 
     // Allocate container to load frames
@@ -32,7 +34,7 @@ int main(int argc, char *argv[]) {
 
         // Get the size of a frame in bytes
         int imgSize = server_img.total() * server_img.elemSize();
-
+        printf("imgSize: %d\n", imgSize);
         // Allocate a buffer to load the frame (there would be 2 buffers in the
         // world of the Internet)
         uchar buffer[imgSize];
@@ -52,7 +54,7 @@ int main(int argc, char *argv[]) {
         // Notice: this part is necessary due to openCV's design.
         // waitKey function means a delay to get the next frame. You can change
         // the value of delay to see what will happen
-        char c = (char)waitKey(33.3333);
+        char c = (char)waitKey(frame_time);
         if (c == 27) break;
     }
 

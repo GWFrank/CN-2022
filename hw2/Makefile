@@ -4,27 +4,31 @@ INCLUDE_OPENCV = `pkg-config --cflags --libs opencv4`
 LINK_PTHREAD = -lpthread
 
 CLIENT = client.cpp
-SERVER = server.cpp server.h
+SERVER = server.cpp
 OPEN_CV = openCV.cpp
 PTHREAD = pthread.cpp
-PKT_UTIL = pkt_util.h
+PKT_UTIL = pkt_util.cpp
+
 CLI = client
 SER = server
 CV = openCV
 PTH = pthread
+PKU = pkt_util.o
 
 all: server client
   
-server: $(SERVER) $(PKT_UTIL)
-	$(CXX) $(SERVER) -o $(SER) $(INCLUDE_OPENCV) $(LINK_PTHREAD)
-client: $(CLIENT) $(PKT_UTIL)
-	$(CXX) $(CLIENT) -o $(CLI) $(INCLUDE_OPENCV) $(LINK_PTHREAD)
-opencv: $(OPEN_CV)
+$(SER): $(SERVER) $(PKU)
+	$(CXX) $(SERVER) $(PKU) -o $(SER) $(INCLUDE_OPENCV) $(LINK_PTHREAD)
+$(CLI): $(CLIENT) $(PKU)
+	$(CXX) $(CLIENT) $(PKU) -o $(CLI) $(INCLUDE_OPENCV) $(LINK_PTHREAD)
+$(PKU): $(PKT_UTIL)
+	$(CXX) -c $(PKT_UTIL) $(INCLUDE_OPENCV)
+$(CV): $(OPEN_CV)
 	$(CXX) $(OPEN_CV) -o $(CV) $(INCLUDE_OPENCV)
-pthread: $(PTHREAD)
+$(PTH): $(PTHREAD)
 	$(CXX) $(PTHREAD) -o $(PTH) $(LINK_PTHREAD)
 
 .PHONY: clean
 
 clean:
-	rm $(CLI) $(SER) $(CV) $(PTH)
+	rm $(CLI) $(SER) $(PKU) $(CV) $(PTH)

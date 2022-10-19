@@ -2,4 +2,5 @@ openCV
 server
 client
 pthread
+*.o
 *.mpg
