@@ -7,7 +7,7 @@ using namespace cv;
 
 int main(int argc, char *argv[]) {
     Mat server_img, client_img;
-    VideoCapture cap("./video.mpg");
+    VideoCapture cap("./dQw4w.mpg");
 
     // Get the resolution of the video
     int width = cap.get(CAP_PROP_FRAME_WIDTH);
@@ -34,7 +34,7 @@ int main(int argc, char *argv[]) {
 
         // Get the size of a frame in bytes
         int imgSize = server_img.total() * server_img.elemSize();
-        printf("imgSize: %d\n", imgSize);
+        // printf("imgSize: %d\n", imgSize);
         // Allocate a buffer to load the frame (there would be 2 buffers in the
         // world of the Internet)
         uchar buffer[imgSize];

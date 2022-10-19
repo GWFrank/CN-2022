@@ -1,5 +1,5 @@
-CC = gcc -Wall
-CXX = g++ -Wall
+CC = gcc -Wall -O2
+CXX = g++ -Wall -O2
 INCLUDE_OPENCV = `pkg-config --cflags --libs opencv4`
 LINK_PTHREAD = -lpthread
 

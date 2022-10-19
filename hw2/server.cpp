@@ -27,8 +27,6 @@ void* srv_interact(void* arg) {
     recv_str(cinfo.sock_fd, in_buf);
     fprintf(stderr, "[login] User '%s' logged in\n", in_buf);
     // Test video
-    // cv::VideoCapture cap("./video.mpg");
-    // if (send_video(cinfo.sock_fd, cap) == 1) {
     if (send_video(cinfo.sock_fd, "./dQw4w.mpg") == 1) {
         goto src_interact_exit;
     }

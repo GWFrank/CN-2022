@@ -106,16 +106,23 @@ int send_str(const int sock_fd, char msg[]) {
     // Send message size
     pack_uint64(msg_len, pkt);
     if (send_packet(sock_fd, pkt) == 1) {
-        return 1;
+        goto send_str_err;
     }
     // fprintf(stderr, "[info] Sent payload length = %ld\n", msg_len);
     // Send message
     pack_str(msg, pkt);
     if (send_packet(sock_fd, pkt) == 1) {
-        return 1;
+        goto send_str_err;
     }
     // fprintf(stderr, "[info] Sent payload\n");
+
+    if (pkt.data_p != NULL)
+        free(pkt.data_p);
     return 0;
+send_str_err:
+    if (pkt.data_p != NULL)
+        free(pkt.data_p);
+    return 1;
 }
 
 int recv_str(const int sock_fd, char msg[]) {
@@ -124,23 +131,29 @@ int recv_str(const int sock_fd, char msg[]) {
     // Receive message size
     // alloc_packet_size(pkt, sizeof(uint64_t));
     if (recv_packet(sock_fd, pkt, sizeof(uint64_t)) == 1) {
-        return 1;
+        goto recv_str_err;
     }
     unpack_uint64(msg_len, pkt);
     // fprintf(stderr, "[info] Received payload length = %ld\n", msg_len);
     // Receive message
     // alloc_packet_size(pkt, msg_len*sizeof(char));
     if (recv_packet(sock_fd, pkt, msg_len*sizeof(char)) == 1) {
-        return 1;
+        goto recv_str_err;
     }
     unpack_str(msg, pkt);
     // fprintf(stderr, "[info] Received payload\n");
     fprintf(stderr, "[info] Received msg: '%s'\n", msg);
+
+    if (pkt.data_p != NULL)
+        free(pkt.data_p);
     return 0;
+recv_str_err:
+    if (pkt.data_p != NULL)
+        free(pkt.data_p);
+    return 1;
 }
 
-int64_t send_frame(const int sock_fd, cv::Mat &img) {
-    Packet pkt;
+int64_t send_frame(const int sock_fd, cv::Mat &img, Packet &pkt) {
     int64_t img_size = img.total() * img.elemSize();
     // Send frame size, this will be 0 at the end of video
     pack_int64(img_size, pkt);
@@ -155,8 +168,7 @@ int64_t send_frame(const int sock_fd, cv::Mat &img) {
     return img_size;
 }
 
-int64_t recv_frame(const int sock_fd, cv::Mat &img) {
-    Packet pkt;
+int64_t recv_frame(const int sock_fd, cv::Mat &img, Packet &pkt) {
     int64_t img_size = -1;
     // Receive frame size, this will be 0 at the end of video
     if (recv_packet(sock_fd, pkt, sizeof(uint64_t)) == 1) {
@@ -179,30 +191,32 @@ int send_video(const int sock_fd, const char video_path[]) {
     uint64_t width = (uint64_t)cap.get(cv::CAP_PROP_FRAME_WIDTH);
     uint64_t height = (uint64_t)cap.get(cv::CAP_PROP_FRAME_HEIGHT);
     double frame_time = 1000/cap.get(cv::CAP_PROP_FPS);
+    cv::Mat server_img;
+    int count;
     // Send resolution and frame time
     pack_uint64(width, pkt);
     if (send_packet(sock_fd, pkt) == 1) {
-        return 1;
+        goto send_video_err;
     }
     pack_uint64(height, pkt);
     if (send_packet(sock_fd, pkt) == 1) {
-        return 1;
+        goto send_video_err;
     }
     pack_double(frame_time, pkt);
     if (send_packet(sock_fd, pkt) == 1) {
-        return 1;
+        goto send_video_err;
     }
     // Prepare container for frames
-    cv::Mat server_img = cv::Mat::zeros(height, width, CV_8UC3);
+    server_img = cv::Mat::zeros(height, width, CV_8UC3);
     if (!server_img.isContinuous()) {
         server_img = server_img.clone();
     }
 
-    int count=0;
+    count = 0;
     while (1) {
         // Send video frame
         cap >> server_img;
-        int64_t ret = send_frame(sock_fd, server_img);
+        int64_t ret = send_frame(sock_fd, server_img, pkt);
         if (ret < 0) {
             goto send_video_err;
         } else if (ret == 0) { // End of video
@@ -219,11 +233,16 @@ int send_video(const int sock_fd, const char video_path[]) {
         if (key_pressed == 27)
             break;
     }
-    cap.release();
     fprintf(stderr, "[video] Succesfully sent %d frames\n", count);
+    
+    cap.release();
+    if (pkt.data_p != NULL)
+        free(pkt.data_p);
     return 0;
 send_video_err:
     cap.release();
+    if (pkt.data_p != NULL)
+        free(pkt.data_p);
     return 1;
 }
 
@@ -232,35 +251,37 @@ int recv_video(const int sock_fd) {
     uint64_t width;
     uint64_t height;
     double frame_time;
+    cv::Mat client_img;
+    int frame_count;
     // Receive resolution and frame time
     if (recv_packet(sock_fd, pkt, sizeof(uint64_t)) == 1) {
-        return 1;
+        goto recv_video_err;
     }
     unpack_uint64(width, pkt);
     if (recv_packet(sock_fd, pkt, sizeof(uint64_t)) == 1) {
-        return 1;
+        goto recv_video_err;
     }
     unpack_uint64(height, pkt);
     if (recv_packet(sock_fd, pkt, sizeof(uint64_t)) == 1) {
-        return 1;
+        goto recv_video_err;
     }
     unpack_double(frame_time, pkt);
     fprintf(stderr, "[video] Video metadata: %lux%lu, %.2f FPS\n", width, height, 1000/frame_time);
     // Prepare container for frames
-    cv::Mat client_img = cv::Mat::zeros(height, width, CV_8UC3);
+    client_img = cv::Mat::zeros(height, width, CV_8UC3);
     if (!client_img.isContinuous()) {
         client_img = client_img.clone();
     }
-    int count=0;
+    frame_count = 0;
     while (1) {
         // Receive video frame
-        int64_t ret = recv_frame(sock_fd, client_img);
+        int64_t ret = recv_frame(sock_fd, client_img, pkt);
         if (ret < 0) {
             goto recv_video_err;
         } else if (ret == 0) {
             break;
         }
-        count++;
+        frame_count++;
         imshow("Video", client_img);
         // Send key pressed
         int64_t key_pressed = (int64_t)cv::waitKey(frame_time);
@@ -272,10 +293,15 @@ int recv_video(const int sock_fd) {
         if (key_pressed == 27)
             break;
     }
+    fprintf(stderr, "[video] Succesfully received %d frames\n", frame_count);
+    
     cv::destroyAllWindows();
-    fprintf(stderr, "[video] Succesfully received %d frames\n", count);
+    if (pkt.data_p != NULL)
+        free(pkt.data_p);
     return 0;
 recv_video_err:
     cv::destroyAllWindows();
+    if (pkt.data_p != NULL)
+        free(pkt.data_p);
     return 1;
 }

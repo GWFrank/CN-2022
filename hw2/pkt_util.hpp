@@ -39,9 +39,9 @@ int send_str(const int sock_fd, char msg[]);
 int recv_str(const int sock_fd, char msg[]);
 
 // Return received frame size
-int64_t send_frame(const int sock_fd, cv::Mat &img);
+int64_t send_frame(const int sock_fd, cv::Mat &img, Packet &pkt);
 // Return received frame size
-int64_t recv_frame(const int sock_fd, cv::Mat &img);
+int64_t recv_frame(const int sock_fd, cv::Mat &img, Packet &pkt);
 // Return 0 when success, non-0 when error
 int send_video(const int sock_fd, const char video_path[]);
 int recv_video(const int sock_fd);
