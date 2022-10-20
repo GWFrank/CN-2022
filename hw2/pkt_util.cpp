@@ -2,6 +2,8 @@
 
 #include <opencv2/opencv.hpp>
 
+#include <chrono>
+
 #include <sys/socket.h>
 #include <unistd.h>
 #include <cstdio>
@@ -177,7 +179,7 @@ int64_t recv_frame(const int sock_fd, cv::Mat &img, Packet &pkt) {
     unpack_int64(img_size, pkt);
     // fprintf(stderr, "[info] Received frame length = %ld\n", img_size);
     // Receive frame
-    if (recv_packet(sock_fd, pkt, img_size*sizeof(char)) == 1) {
+    if (recv_packet(sock_fd, pkt, img_size) == 1) {
         return -1;
     }
     unpack_frame(img, pkt);
@@ -233,7 +235,7 @@ int send_video(const int sock_fd, const char video_path[]) {
         if (key_pressed == 27)
             break;
     }
-    fprintf(stderr, "[video] Succesfully sent %d frames\n", count);
+    fprintf(stderr, "[video] Successfully sent %d frames\n", count);
     
     cap.release();
     if (pkt.data_p != NULL)
@@ -253,6 +255,13 @@ int recv_video(const int sock_fd) {
     double frame_time;
     cv::Mat client_img;
     int frame_count;
+
+    std::chrono::duration<double> video_time;
+    auto video_st = std::chrono::system_clock::now();
+    auto ts_prev = std::chrono::system_clock::now();
+    auto ts_intvl = std::chrono::milliseconds(0);
+    int64_t ret, key_pressed;
+
     // Receive resolution and frame time
     if (recv_packet(sock_fd, pkt, sizeof(uint64_t)) == 1) {
         goto recv_video_err;
@@ -272,10 +281,13 @@ int recv_video(const int sock_fd) {
     if (!client_img.isContinuous()) {
         client_img = client_img.clone();
     }
+    // Receive video frame loop
+    video_st = std::chrono::system_clock::now();
+    ts_prev = std::chrono::system_clock::now();
+    ts_intvl = std::chrono::milliseconds((int64_t)frame_time);
     frame_count = 0;
     while (1) {
-        // Receive video frame
-        int64_t ret = recv_frame(sock_fd, client_img, pkt);
+        ret = recv_frame(sock_fd, client_img, pkt);
         if (ret < 0) {
             goto recv_video_err;
         } else if (ret == 0) {
@@ -284,8 +296,12 @@ int recv_video(const int sock_fd) {
         frame_count++;
         imshow("Video", client_img);
         // Send key pressed
-        int64_t key_pressed = (int64_t)cv::waitKey(frame_time);
         // int64_t key_pressed = (int64_t)cv::waitKey(0); // debug
+        key_pressed = -1;
+        while (std::chrono::system_clock::now() - ts_prev < ts_intvl
+               && (key_pressed = (int64_t)cv::waitKey(1)) != 27) {   
+        }
+        ts_prev = std::chrono::system_clock::now();
         pack_int64(key_pressed, pkt);
         if (send_packet(sock_fd, pkt) == 1) {
             goto recv_video_err;
@@ -293,7 +309,9 @@ int recv_video(const int sock_fd) {
         if (key_pressed == 27)
             break;
     }
-    fprintf(stderr, "[video] Succesfully received %d frames\n", frame_count);
+    video_time = std::chrono::system_clock::now() - video_st;
+    fprintf(stderr, "[video] Successfully received %d frames in %.2f s\n", frame_count, video_time.count());
+    fprintf(stderr, "[video] Average frame rate: %.2f FPS\n", frame_count/video_time.count());
     
     cv::destroyAllWindows();
     if (pkt.data_p != NULL)

@@ -5,13 +5,13 @@ LINK_PTHREAD = -lpthread
 
 CLIENT = client.cpp
 SERVER = server.cpp
-OPEN_CV = openCV.cpp
+VIDEO_TEST = video-test.cpp
 PTHREAD = pthread.cpp
 PKT_UTIL = pkt_util.cpp
 
 CLI = client
 SER = server
-CV = openCV
+VT = video-test
 PTH = pthread
 PKU = pkt_util.o
 
@@ -23,12 +23,12 @@ $(CLI): $(CLIENT) $(PKU)
 	$(CXX) $(CLIENT) $(PKU) -o $(CLI) $(INCLUDE_OPENCV) $(LINK_PTHREAD)
 $(PKU): $(PKT_UTIL)
 	$(CXX) -c $(PKT_UTIL) $(INCLUDE_OPENCV)
-$(CV): $(OPEN_CV)
-	$(CXX) $(OPEN_CV) -o $(CV) $(INCLUDE_OPENCV)
+$(VT): $(VIDEO_TEST)
+	$(CXX) $(VIDEO_TEST) -o $(VT) $(INCLUDE_OPENCV) $(LINK_PTHREAD)
 $(PTH): $(PTHREAD)
 	$(CXX) $(PTHREAD) -o $(PTH) $(LINK_PTHREAD)
 
 .PHONY: clean
 
 clean:
-	rm $(CLI) $(SER) $(PKU) $(CV) $(PTH)
+	rm $(CLI) $(SER) $(PKU) $(VT) $(PTH)

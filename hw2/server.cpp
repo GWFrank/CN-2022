@@ -28,6 +28,7 @@ void* srv_interact(void* arg) {
     fprintf(stderr, "[login] User '%s' logged in\n", in_buf);
     // Test video
     if (send_video(cinfo.sock_fd, "./dQw4w.mpg") == 1) {
+    // if (send_video(cinfo.sock_fd, "./video.mpg") == 1) {
         goto src_interact_exit;
     }
     // Shell loop

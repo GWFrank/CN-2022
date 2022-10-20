@@ -4,3 +4,5 @@ client
 pthread
 *.o
 *.mpg
+video-test
+.directory
