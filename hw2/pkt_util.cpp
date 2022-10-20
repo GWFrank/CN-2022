@@ -65,7 +65,8 @@ void pack_str(const char src[], Packet &pkt) {
 }
 void pack_double(const double &src, Packet &pkt) {
     alloc_packet_size(pkt, sizeof(double));
-    uint64_t src_int = *((uint64_t*)&src);
+    uint64_t src_int;
+    memcpy(&src_int, &src, sizeof(double));
     for (int i=0; i<64/8; ++i) {
         pkt.data_p[i] = src_int >> 8*i;
     }
@@ -96,7 +97,7 @@ void unpack_double(double &dst, Packet &pkt) {
     for (int i=0; i<64/8; ++i) {
         dst_int |= (uint64_t)(pkt.data_p[i]) << 8*i;
     }
-    dst = *((double*)&dst_int);
+    memcpy(&dst, &dst_int, sizeof(double));
 }
 void unpack_frame(cv::Mat &img, Packet &pkt) {
     memcpy(img.data, pkt.data_p, pkt.data_size);
@@ -214,9 +215,9 @@ int send_video(const int sock_fd, const char video_path[]) {
         server_img = server_img.clone();
     }
 
+    // Send video frame loop
     count = 0;
     while (1) {
-        // Send video frame
         cap >> server_img;
         int64_t ret = send_frame(sock_fd, server_img, pkt);
         if (ret < 0) {
@@ -250,17 +251,17 @@ send_video_err:
 
 int recv_video(const int sock_fd) {
     Packet pkt;
-    uint64_t width;
-    uint64_t height;
-    double frame_time;
+    uint64_t width=-1;
+    uint64_t height=-1;
+    double frame_time=-1;
     cv::Mat client_img;
-    int frame_count;
+    int frame_count=-1;
 
     std::chrono::duration<double> video_time;
     auto video_st = std::chrono::system_clock::now();
     auto ts_prev = std::chrono::system_clock::now();
     auto ts_intvl = std::chrono::milliseconds(0);
-    int64_t ret, key_pressed;
+    int64_t ret=-1, key_pressed=-1;
 
     // Receive resolution and frame time
     if (recv_packet(sock_fd, pkt, sizeof(uint64_t)) == 1) {
@@ -281,11 +282,12 @@ int recv_video(const int sock_fd) {
     if (!client_img.isContinuous()) {
         client_img = client_img.clone();
     }
+
     // Receive video frame loop
-    video_st = std::chrono::system_clock::now();
-    ts_prev = std::chrono::system_clock::now();
-    ts_intvl = std::chrono::milliseconds((int64_t)frame_time);
     frame_count = 0;
+    ts_intvl = std::chrono::milliseconds((int64_t)frame_time);
+    // video_st = std::chrono::system_clock::now();
+    ts_prev = std::chrono::system_clock::now();
     while (1) {
         ret = recv_frame(sock_fd, client_img, pkt);
         if (ret < 0) {
@@ -294,12 +296,15 @@ int recv_video(const int sock_fd) {
             break;
         }
         frame_count++;
-        imshow("Video", client_img);
+        cv::imshow("Video", client_img);
         // Send key pressed
-        // int64_t key_pressed = (int64_t)cv::waitKey(0); // debug
-        key_pressed = -1;
+        // key_pressed = (int64_t)cv::waitKey(0); // debug
+        // key_pressed = -1;
         while (std::chrono::system_clock::now() - ts_prev < ts_intvl
-               && (key_pressed = (int64_t)cv::waitKey(1)) != 27) {   
+               && (key_pressed = (int64_t)cv::waitKey(1)) != 27
+        ) {}
+        if (frame_count == 1) { // Ignore first frame
+            video_st = std::chrono::system_clock::now();
         }
         ts_prev = std::chrono::system_clock::now();
         pack_int64(key_pressed, pkt);
@@ -311,7 +316,7 @@ int recv_video(const int sock_fd) {
     }
     video_time = std::chrono::system_clock::now() - video_st;
     fprintf(stderr, "[video] Successfully received %d frames in %.2f s\n", frame_count, video_time.count());
-    fprintf(stderr, "[video] Average frame rate: %.2f FPS\n", frame_count/video_time.count());
+    fprintf(stderr, "[video] Average frame rate: %.2f FPS\n", (frame_count-1)/video_time.count());
     
     cv::destroyAllWindows();
     if (pkt.data_p != NULL)

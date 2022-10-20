@@ -1,5 +1,5 @@
-CC = gcc -Wall -O2
-CXX = g++ -Wall -O2
+CC = gcc -Wall -O3
+CXX = g++ -Wall -O3
 INCLUDE_OPENCV = `pkg-config --cflags --libs opencv4`
 LINK_PTHREAD = -lpthread
 
@@ -31,4 +31,4 @@ $(PTH): $(PTHREAD)
 .PHONY: clean
 
 clean:
-	rm $(CLI) $(SER) $(PKU) $(VT) $(PTH)
+	rm $(CLI) $(SER) $(PKU)
