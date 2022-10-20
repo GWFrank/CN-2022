@@ -286,7 +286,6 @@ int recv_video(const int sock_fd) {
     // Receive video frame loop
     frame_count = 0;
     ts_intvl = std::chrono::milliseconds((int64_t)frame_time);
-    // video_st = std::chrono::system_clock::now();
     ts_prev = std::chrono::system_clock::now();
     while (1) {
         ret = recv_frame(sock_fd, client_img, pkt);
@@ -299,13 +298,9 @@ int recv_video(const int sock_fd) {
         cv::imshow("Video", client_img);
         // Send key pressed
         // key_pressed = (int64_t)cv::waitKey(0); // debug
-        // key_pressed = -1;
         while (std::chrono::system_clock::now() - ts_prev < ts_intvl
                && (key_pressed = (int64_t)cv::waitKey(1)) != 27
         ) {}
-        if (frame_count == 1) { // Ignore first frame
-            video_st = std::chrono::system_clock::now();
-        }
         ts_prev = std::chrono::system_clock::now();
         pack_int64(key_pressed, pkt);
         if (send_packet(sock_fd, pkt) == 1) {
@@ -316,7 +311,7 @@ int recv_video(const int sock_fd) {
     }
     video_time = std::chrono::system_clock::now() - video_st;
     fprintf(stderr, "[video] Successfully received %d frames in %.2f s\n", frame_count, video_time.count());
-    fprintf(stderr, "[video] Average frame rate: %.2f FPS\n", (frame_count-1)/video_time.count());
+    fprintf(stderr, "[video] Average frame rate: %.2f FPS\n", (frame_count)/video_time.count());
     
     cv::destroyAllWindows();
     if (pkt.data_p != NULL)
