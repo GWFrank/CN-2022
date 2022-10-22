@@ -73,6 +73,5 @@
         "typeinfo": "cpp",
         "valarray": "cpp",
         "queue": "cpp"
-    },
-    "C_Cpp.errorSquiggles": "Enabled"
+    }
 }
