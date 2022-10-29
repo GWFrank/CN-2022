@@ -72,6 +72,9 @@
         "thread": "cpp",
         "typeinfo": "cpp",
         "valarray": "cpp",
-        "queue": "cpp"
+        "queue": "cpp",
+        "forward_list": "cpp",
+        "cfenv": "cpp",
+        "typeindex": "cpp"
     }
 }

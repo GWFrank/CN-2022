@@ -1,9 +1,13 @@
 #include "server.h"
 #include "pkt_util.hpp"
+#include "cmd_util.hpp"
 
 #include <opencv2/opencv.hpp>
 
 #include <vector>
+#include <string>
+#include <set>
+#include <iostream>
 
 #include <pthread.h>
 #include <sys/socket.h>
@@ -17,36 +21,40 @@
 #include <cstdint>
 #include <csignal>
 
-const char SHELL_SYMBOL[] = "$ ";
-
 void* srv_interact(void* arg) {
-    clientInfo cinfo = *(clientInfo *)arg; // Includes tid for debugging
-    char out_buf[MAX_BUF_SIZE] = "";
+    clientInfo* cinfo_p = (clientInfo *)arg;
     char in_buf[MAX_BUF_SIZE] = "";
+    char out_buf[MAX_BUF_SIZE] = "";
     // Login
-    recv_str(cinfo.sock_fd, in_buf);
-    fprintf(stderr, "[login] User '%s' logged in\n", in_buf);
-    // Test video
-    if (send_video(cinfo.sock_fd, "./dQw4w.mpg") == 1) {
-    // if (send_video(cinfo.sock_fd, "./video.mpg") == 1) {
-        goto src_interact_exit;
+    if (recv_str(cinfo_p->sock_fd, in_buf)) {
+        goto srv_interact_exit;
     }
+    cinfo_p->username = in_buf;
+    printf("Accept a new connection on socket %d. Login as %s\n", cinfo_p->sock_fd, cinfo_p->username.c_str());
+    // Test video
+    // if (send_video(cinfo_p->sock_fd, "./dQw4w.mpg") == 1) {
+    //     goto srv_interact_exit;
+    // }
     // Shell loop
     fprintf(stderr, "[info] Entering shell loop\n");
     while (1) {
-        snprintf(out_buf, MAX_BUF_SIZE, "%s", SHELL_SYMBOL);
-        if (send_str(cinfo.sock_fd, out_buf) == 1) {
-            goto src_interact_exit;
+        // Receive command
+        if (recv_str(cinfo_p->sock_fd, in_buf)) {
+            goto srv_interact_exit;
         }
-        if (recv_str(cinfo.sock_fd, in_buf) == 1) {
-            goto src_interact_exit;
+        std::string cmd(in_buf);
+        // Check command validity and run
+        if (ALL_CMDS.count(cmd)) {
+            srv_cmd_func.find(cmd)->second(cinfo_p);
+        } else {
+            fprintf(stderr, "[info] Client's command not found.\n");
         }
-        printf("Client sent '%s'\n", in_buf);
     }
     
-src_interact_exit:
-    close(cinfo.sock_fd);
-    free(arg);
+srv_interact_exit:
+    close(cinfo_p->sock_fd);
+    // free(arg);
+    delete (clientInfo*)arg;
     pthread_exit(NULL);
 }
 
@@ -94,17 +102,19 @@ int main(int argc, char *argv[]){
     fprintf(stderr, "[info] Server listening on port %d\n", PORT);
 
     // Listen for clients loop
-    // std::vector<clientInfo> clients(0);
+    std::set<std::string> blocklist;
+    pthread_mutex_t blocklist_lock;
+    pthread_mutex_init(&blocklist_lock, NULL);
     while (1) {
         // Accept the client and get client file descriptor
         if((client_sockfd = accept(server_sockfd, (struct sockaddr *)&client_addr, (socklen_t*)&client_addr_len)) < 0){
             ERR_EXIT("accept failed\n");
         }
         fprintf(stderr, "[info] new connection accepted\n");
-        // clients.push_back(clientInfo(client_sockfd));
-        // clientInfo* new_cl_p = &clients[clients.size()-1];
-        clientInfo* new_cl_p = (clientInfo*)malloc(sizeof(clientInfo));
-        *new_cl_p = clientInfo(client_sockfd);
+        clientInfo* new_cl_p = new clientInfo(client_sockfd, &blocklist, &blocklist_lock);
+        // new_cl_p->sock_fd = client_sockfd;
+        // new_cl_p->srv_blocklist_p = &blocklist;
+        // new_cl_p->lock_p = &blocklist_lock;
         pthread_create(&(new_cl_p->tid), NULL, &srv_interact, (void*)new_cl_p);
         pthread_detach(new_cl_p->tid);
     }

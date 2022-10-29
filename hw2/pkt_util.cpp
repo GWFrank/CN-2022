@@ -11,7 +11,6 @@
 #include <cstdint>
 #include <cstring>
 
-
 int send_packet(const int sock_fd, Packet &pkt) {
     int write_byte;
     if((write_byte = send(sock_fd, pkt.data_p, pkt.data_size, MSG_NOSIGNAL)) < 0) {
@@ -103,7 +102,54 @@ void unpack_frame(cv::Mat &img, Packet &pkt) {
     memcpy(img.data, pkt.data_p, pkt.data_size);
 }
 
-int send_str(const int sock_fd, char msg[]) {
+int send_int64(const int sock_fd, const int64_t &num) {
+    Packet pkt;
+    uint64_t num_len = (uint64_t) sizeof(int64_t);
+    // Send message size
+    pack_uint64(num_len, pkt);
+    if (send_packet(sock_fd, pkt) == 1) {
+        goto send_int64_err;
+    }
+    // Send message
+    pack_int64(num, pkt);
+    if (send_packet(sock_fd, pkt) == 1) {
+        goto send_int64_err;
+    }
+
+    if (pkt.data_p != NULL)
+        free(pkt.data_p);
+    return 0;
+send_int64_err:
+    if (pkt.data_p != NULL)
+        free(pkt.data_p);
+    return 1;
+}
+
+int recv_int64(const int sock_fd, int64_t &num) {
+    Packet pkt;
+    uint64_t num_len;
+    // Receive message size
+    if (recv_packet(sock_fd, pkt, sizeof(uint64_t)) == 1) {
+        goto recv_int64_err;
+    }
+    unpack_uint64(num_len, pkt);
+    // Receive message
+    if (recv_packet(sock_fd, pkt, sizeof(int64_t)) == 1) {
+        goto recv_int64_err;
+    }
+    unpack_int64(num, pkt);
+    fprintf(stderr, "[info] Received int: '%ld'\n", num);
+
+    if (pkt.data_p != NULL)
+        free(pkt.data_p);
+    return 0;
+recv_int64_err:
+    if (pkt.data_p != NULL)
+        free(pkt.data_p);
+    return 1;
+}
+
+int send_str(const int sock_fd, const char msg[]) {
     Packet pkt;
     uint64_t msg_len = (uint64_t) strlen(msg);
     // Send message size

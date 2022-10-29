@@ -1,4 +1,8 @@
+#include "client.h"
 #include "pkt_util.hpp"
+#include "cmd_util.hpp"
+
+#include <string>
 
 #include <sys/socket.h>
 #include <arpa/inet.h>
@@ -10,26 +14,36 @@
 #include <cstring>
 
 void cli_interact(int sock_fd, char* username) {
-    // Receive message from server
     char in_buf[MAX_BUF_SIZE] = "";
     char out_buf[MAX_BUF_SIZE] = "";
+    char scan_buf[MAX_BUF_SIZE] = "";
     // Login
     snprintf(out_buf, MAX_BUF_SIZE, "%s", username);
-    send_str(sock_fd, out_buf);
-    // Test video
-    if (recv_video(sock_fd) == 1) {
+    if (send_str(sock_fd, out_buf)) {
         goto cli_interact_exit;
     }
+    fprintf(stderr, "[info] Connect to server on socket %d. Login as %s\n", sock_fd, username);
+    // Test video
+    // if (recv_video(sock_fd) == 1) {
+    //     goto cli_interact_exit;
+    // }
     // Shell loop
     fprintf(stderr, "[info] Entering shell loop\n");
     while (1) {
-        if (recv_str(sock_fd, in_buf) == 1) {
+        printf("%s", SHELL_SYMBOL);
+        // Read command from stdin
+        scanf("%s", scan_buf);
+        std::string cmd(scan_buf);
+        // Send command
+        snprintf(out_buf, MAX_BUF_SIZE, "%s", cmd.c_str());
+        if (send_str(sock_fd, out_buf)) {
             goto cli_interact_exit;
         }
-        printf("%s", in_buf);
-        fgets(out_buf, MAX_BUF_SIZE-1, stdin); // fgets() reads spaces
-        if (send_str(sock_fd, out_buf) == 1) {
-            goto cli_interact_exit;
+        // Check command validity and run
+        if (ALL_CMDS.count(cmd)) {
+            cli_cmd_func.find(cmd)->second(sock_fd);
+        } else {
+            printf("Command not found.\n");
         }
     }
 cli_interact_exit:

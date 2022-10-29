@@ -6,3 +6,5 @@ pthread
 *.mpg
 video-test
 .directory
+test.cpp
+test

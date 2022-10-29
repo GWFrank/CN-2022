@@ -6,7 +6,7 @@
 #include <sys/socket.h>
 #include <cstdint>
 
-#define MAX_BUF_SIZE 4096
+#define MAX_BUF_SIZE 2048
 #define ERR_EXIT(a){ perror(a); exit(1); }
 
 struct Packet {
@@ -17,8 +17,10 @@ struct Packet {
 
 // Return 0 when success, non-0 when error
 int send_packet(const int sock_fd, Packet &pkt);
+
 // Return 0 when success, non-0 when error
 int recv_packet(const int sock_fd, Packet &pkt, size_t sz);
+
 void alloc_packet_size(Packet &pkt, size_t sz);
 
 void pack_uint64(const uint64_t src, Packet &pkt);
@@ -34,16 +36,27 @@ void unpack_double(double &dst, Packet &pkt);
 void unpack_frame(cv::Mat &img, Packet &pkt);
 
 // Return 0 when success, non-0 when error
-int send_str(const int sock_fd, char msg[]);
+int send_int64(const int sock_fd, const int64_t &num);
+
+// Return 0 when success, non-0 when error
+int recv_int64(const int sock_fd, int64_t &num);
+
+// Return 0 when success, non-0 when error
+int send_str(const int sock_fd, const char msg[]);
+
 // Return 0 when success, non-0 when error
 int recv_str(const int sock_fd, char msg[]);
 
 // Return received frame size
 int64_t send_frame(const int sock_fd, cv::Mat &img, Packet &pkt);
+
 // Return received frame size
 int64_t recv_frame(const int sock_fd, cv::Mat &img, Packet &pkt);
+
 // Return 0 when success, non-0 when error
 int send_video(const int sock_fd, const char video_path[]);
+
+// Return 0 when success, non-0 when error
 int recv_video(const int sock_fd);
 
 #endif // PKT_UTIL_HPP
