@@ -22,15 +22,22 @@
 #include <csignal>
 
 void* srv_interact(void* arg) {
-    clientInfo* cinfo_p = (clientInfo *)arg;
+    cmu::clientInfo* cinfo_p = (cmu::clientInfo *)arg;
     char in_buf[MAX_BUF_SIZE] = "";
     char out_buf[MAX_BUF_SIZE] = "";
+    char path_buf[MAX_BUF_SIZE] = "";
     // Login
-    if (recv_str(cinfo_p->sock_fd, in_buf)) {
+    if (pku::recv_str(cinfo_p->sock_fd, in_buf)) {
         goto srv_interact_exit;
     }
     cinfo_p->username = in_buf;
     printf("Accept a new connection on socket %d. Login as %s\n", cinfo_p->sock_fd, cinfo_p->username.c_str());
+    // Check ./server_dir and ./server_dir/<username>
+    cmu::check_and_mkdir(cmu::SRVDIR);
+    snprintf(path_buf, MAX_BUF_SIZE, "%s/%s", cmu::SRVDIR, cinfo_p->username.c_str());
+    cmu::check_and_mkdir(path_buf);
+
+    
     // Test video
     // if (send_video(cinfo_p->sock_fd, "./dQw4w.mpg") == 1) {
     //     goto srv_interact_exit;
@@ -39,13 +46,15 @@ void* srv_interact(void* arg) {
     fprintf(stderr, "[info] Entering shell loop\n");
     while (1) {
         // Receive command
-        if (recv_str(cinfo_p->sock_fd, in_buf)) {
+        if (pku::recv_str(cinfo_p->sock_fd, in_buf)) {
             goto srv_interact_exit;
         }
         std::string cmd(in_buf);
         // Check command validity and run
-        if (ALL_CMDS.count(cmd)) {
-            srv_cmd_func.find(cmd)->second(cinfo_p);
+        if (cmu::ALL_CMDS.count(cmd)) {
+            if (cmu::srv_cmd_func.find(cmd)->second(cinfo_p)) {
+                goto srv_interact_exit;
+            }
         } else {
             fprintf(stderr, "[info] Client's command not found.\n");
         }
@@ -54,7 +63,7 @@ void* srv_interact(void* arg) {
 srv_interact_exit:
     close(cinfo_p->sock_fd);
     // free(arg);
-    delete (clientInfo*)arg;
+    delete (cmu::clientInfo*)arg;
     pthread_exit(NULL);
 }
 
@@ -111,7 +120,7 @@ int main(int argc, char *argv[]){
             ERR_EXIT("accept failed\n");
         }
         fprintf(stderr, "[info] new connection accepted\n");
-        clientInfo* new_cl_p = new clientInfo(client_sockfd, &blocklist, &blocklist_lock);
+        cmu::clientInfo* new_cl_p = new cmu::clientInfo(client_sockfd, &blocklist, &blocklist_lock);
         // new_cl_p->sock_fd = client_sockfd;
         // new_cl_p->srv_blocklist_p = &blocklist;
         // new_cl_p->lock_p = &blocklist_lock;

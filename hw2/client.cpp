@@ -4,14 +4,17 @@
 
 #include <string>
 
-#include <sys/socket.h>
 #include <arpa/inet.h>
-#include <sys/ioctl.h>
 #include <net/if.h>
+#include <sys/ioctl.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
 #include <unistd.h>
+#include <dirent.h>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+
 
 void cli_interact(int sock_fd, char* username) {
     char in_buf[MAX_BUF_SIZE] = "";
@@ -19,10 +22,12 @@ void cli_interact(int sock_fd, char* username) {
     char scan_buf[MAX_BUF_SIZE] = "";
     // Login
     snprintf(out_buf, MAX_BUF_SIZE, "%s", username);
-    if (send_str(sock_fd, out_buf)) {
+    if (pku::send_str(sock_fd, out_buf)) {
         goto cli_interact_exit;
     }
     fprintf(stderr, "[info] Connect to server on socket %d. Login as %s\n", sock_fd, username);
+    // Check ./client_dir/ exist
+    cmu::check_and_mkdir(cmu::CLIDIR);
     // Test video
     // if (recv_video(sock_fd) == 1) {
     //     goto cli_interact_exit;
@@ -30,18 +35,21 @@ void cli_interact(int sock_fd, char* username) {
     // Shell loop
     fprintf(stderr, "[info] Entering shell loop\n");
     while (1) {
-        printf("%s", SHELL_SYMBOL);
+        printf("%s", cmu::SHELL_SYMBOL);
         // Read command from stdin
         scanf("%s", scan_buf);
         std::string cmd(scan_buf);
         // Send command
         snprintf(out_buf, MAX_BUF_SIZE, "%s", cmd.c_str());
-        if (send_str(sock_fd, out_buf)) {
+        if (pku::send_str(sock_fd, out_buf)) {
             goto cli_interact_exit;
         }
         // Check command validity and run
-        if (ALL_CMDS.count(cmd)) {
-            cli_cmd_func.find(cmd)->second(sock_fd);
+        if (cmu::ALL_CMDS.count(cmd)) {
+            if (cmu::cli_cmd_func.find(cmd)->second(sock_fd)) {
+                goto cli_interact_exit;
+            }
+            
         } else {
             printf("Command not found.\n");
         }

@@ -8,3 +8,5 @@ video-test
 .directory
 test.cpp
 test
+client_dir/
+server_dir/
