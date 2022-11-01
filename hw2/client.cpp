@@ -15,11 +15,20 @@
 #include <cstdlib>
 #include <cstring>
 
+void read_until_newline() {
+    char in_char=-1;
+    while (in_char != '\n') {
+        scanf("%c", &in_char);
+        fprintf(stderr, "[info] read char %x from stdin\n", in_char);
+    }
+}
 
 void cli_interact(int sock_fd, char* username) {
     char in_buf[MAX_BUF_SIZE] = "";
     char out_buf[MAX_BUF_SIZE] = "";
     char scan_buf[MAX_BUF_SIZE] = "";
+    // bool has_args=false;
+    
     // Login
     snprintf(out_buf, MAX_BUF_SIZE, "%s", username);
     if (pku::send_str(sock_fd, out_buf)) {
@@ -28,10 +37,7 @@ void cli_interact(int sock_fd, char* username) {
     fprintf(stderr, "[info] Connect to server on socket %d. Login as %s\n", sock_fd, username);
     // Check ./client_dir/ exist
     cmu::check_and_mkdir(cmu::CLIDIR);
-    // Test video
-    // if (recv_video(sock_fd) == 1) {
-    //     goto cli_interact_exit;
-    // }
+    
     // Shell loop
     fprintf(stderr, "[info] Entering shell loop\n");
     while (1) {
@@ -46,10 +52,20 @@ void cli_interact(int sock_fd, char* username) {
         }
         // Check command validity and run
         if (cmu::ALL_CMDS.count(cmd)) {
-            if (cmu::cli_cmd_func.find(cmd)->second(sock_fd)) {
+            // Check permission
+            int ret = cmu::check_permission_cli(sock_fd);
+            if (ret == 1) { // Allowed
+                if (cmu::cli_cmd_func.find(cmd)->second(sock_fd)) {
+                    goto cli_interact_exit;
+                }
+            } else if (ret == 0) { // Banned
+                read_until_newline();
+                continue;
+            } else if (ret == -1) { // Errored
                 goto cli_interact_exit;
+            } else { // Weird cases
+                ERR_EXIT("Unexpected return from permission checking");
             }
-            
         } else {
             printf("Command not found.\n");
         }

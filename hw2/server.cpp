@@ -26,6 +26,7 @@ void* srv_interact(void* arg) {
     char in_buf[MAX_BUF_SIZE] = "";
     char out_buf[MAX_BUF_SIZE] = "";
     char path_buf[MAX_BUF_SIZE] = "";
+    
     // Login
     if (pku::recv_str(cinfo_p->sock_fd, in_buf)) {
         goto srv_interact_exit;
@@ -37,11 +38,6 @@ void* srv_interact(void* arg) {
     snprintf(path_buf, MAX_BUF_SIZE, "%s/%s", cmu::SRVDIR, cinfo_p->username.c_str());
     cmu::check_and_mkdir(path_buf);
 
-    
-    // Test video
-    // if (send_video(cinfo_p->sock_fd, "./dQw4w.mpg") == 1) {
-    //     goto srv_interact_exit;
-    // }
     // Shell loop
     fprintf(stderr, "[info] Entering shell loop\n");
     while (1) {
@@ -52,8 +48,18 @@ void* srv_interact(void* arg) {
         std::string cmd(in_buf);
         // Check command validity and run
         if (cmu::ALL_CMDS.count(cmd)) {
-            if (cmu::srv_cmd_func.find(cmd)->second(cinfo_p)) {
+            // Check permission
+            int ret = cmu::check_permission_srv(cinfo_p, cmd);
+            if (ret == 1) { // Allowed
+                if (cmu::srv_cmd_func.find(cmd)->second(cinfo_p)) {
+                    goto srv_interact_exit;
+                }
+            } else if (ret == 0) { // Banned
+                continue;
+            } else if (ret == -1) { // Errored
                 goto srv_interact_exit;
+            } else { // Weird cases
+                ERR_EXIT("Unexpected return from permission checking");
             }
         } else {
             fprintf(stderr, "[info] Client's command not found.\n");

@@ -14,7 +14,8 @@ namespace cmu{
     void check_and_mkdir(const char pathname[]) {
         struct stat stat_buf;
         if (stat(pathname, &stat_buf)
-            || !S_ISDIR(stat_buf.st_mode)) {
+            || !S_ISDIR(stat_buf.st_mode)
+        ) {
             mkdir(pathname, 0777); // follow umask
         }
     }
@@ -22,10 +23,54 @@ namespace cmu{
     int check_file_exist(const char pathname[]) {
         struct stat stat_buf;
         if (!stat(pathname, &stat_buf)
-            && S_ISREG(stat_buf.st_mode)) {
-            return 0;
+            && S_ISREG(stat_buf.st_mode)
+        ) {
+            return 1;
         }
-        return 1;
+        return 0;
+    }
+
+    int check_permission_cli(int sock_fd) {
+        char status[MAX_STATUS_LEN]="";
+        if (pku::recv_str(sock_fd, status)) {
+            goto check_permission_cli_err;
+        }
+        if (strncmp(status, STOP_MSG, MAX_STATUS_LEN) == 0) {
+            printf("Permission denied.\n");
+            return 0;
+        } else {
+            return 1;
+        }
+    check_permission_cli_err:
+        return -1;
+    }
+
+    int check_permission_srv(clientInfo* cinfo_p, const std::string &cmd) {
+        bool banned = true;
+        if (ADMIN_CMDS.count(cmd)) { // Admin commands
+            if (cinfo_p->username != ADMIN_UNAME) {
+                if (pku::send_str(cinfo_p->sock_fd, STOP_MSG)) {
+                    goto check_permission_srv_err;
+                }
+                return 0;
+            }
+        }
+        pthread_mutex_lock(cinfo_p->lock_p);
+        banned = cinfo_p->srv_blocklist_p->count(cinfo_p->username);
+        pthread_mutex_unlock(cinfo_p->lock_p);
+        if (banned) { // Not in blocklist
+            if (pku::send_str(cinfo_p->sock_fd, STOP_MSG)) {
+                goto check_permission_srv_err;
+            }
+            return 0;
+        } else {
+            if (pku::send_str(cinfo_p->sock_fd, CONT_MSG)) {
+                goto check_permission_srv_err;
+            }
+            return 1;
+        }
+    check_permission_srv_err:
+        return -1;
     }
 
     int ban_cli(int sock_fd) {
@@ -93,7 +138,7 @@ namespace cmu{
             }
             std::string tgtuser(tgtuser_buf);
 
-            if (tgtuser == ADMIN) {
+            if (tgtuser == ADMIN_UNAME) {
                 snprintf(ret_buf, MAX_BUF_SIZE, "You cannot ban yourself!\n");
             } else {
                 if (!cinfo_p->srv_blocklist_p->count(tgtuser)) {
@@ -362,7 +407,7 @@ namespace cmu{
         }
         snprintf(path_buf, MAX_BUF_SIZE, "%s/%s/%s", SRVDIR, cinfo_p->username.c_str(), video_file);
         // Check existence
-        if (check_file_exist(path_buf)) {
+        if (!check_file_exist(path_buf)) { // File doesn't exist
             if (pku::send_str(cinfo_p->sock_fd, STOP_MSG)) {
                 goto play_srv_err;
             }
@@ -375,7 +420,8 @@ namespace cmu{
         // Check file extension
         extn_idx = strlen(video_file)-4;
         if (extn_idx <= 0
-            || strncmp(video_file+extn_idx, MPG_EXTN, MAX_FILENAME_LEN) != 0) {
+            || strncmp(video_file+extn_idx, MPG_EXTN, MAX_FILENAME_LEN) != 0
+        ) { // Not *.mpg
             if (pku::send_str(cinfo_p->sock_fd, STOP_MSG)) {
                 goto play_srv_err;
             }

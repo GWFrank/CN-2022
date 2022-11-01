@@ -36,10 +36,10 @@ namespace cmu {
     const char SHELL_SYMBOL[] = "$ ";
     const char CONT_MSG[] = "cont";
     const char STOP_MSG[] = "stop";
-    const char ADMIN[] = "admin";
     const char SRVDIR[] = "./server_dir";
     const char CLIDIR[] = "./client_dir";
     const char MPG_EXTN[] = ".mpg";
+    const std::string ADMIN_UNAME("admin");
 
     // Normal commands
     const std::string LS_CMD("ls");
@@ -54,8 +54,14 @@ namespace cmu {
 
     void check_and_mkdir(const char pathname[]);
 
-    // Return 0 when file exist and is regular file, non-0 else
+    // Return 1 when file exist and is regular file, 0 else
     int check_file_exist(const char pathname[]);
+
+    // Return 1 when allowed, 0 when not allowed, -1 when error
+    int check_permission_cli(int sock_fd);
+
+    // Return 1 when allowed, 0 when not allowed, -1 when error
+    int check_permission_srv(clientInfo* cinfo_p, const std::string &cmd);
 
     // Return 0 when success, non-0 when error
     int ls_cli(int sock_fd);
