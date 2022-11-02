@@ -16,7 +16,7 @@ namespace pku {
         Packet(): data_size(0), data_p(NULL) {}
     };
 
-    const int FILE_SEG_SIZE = 1<<16;
+    const int FILE_SEG_SIZE = 1<<20;
 
     // Return 0 when success, non-0 when error
     int send_packet(const int sock_fd, Packet &pkt);
