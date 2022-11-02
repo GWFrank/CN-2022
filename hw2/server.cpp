@@ -24,45 +24,43 @@
 void* srv_interact(void* arg) {
     cmu::clientInfo* cinfo_p = (cmu::clientInfo *)arg;
     char in_buf[MAX_BUF_SIZE] = "";
-    char out_buf[MAX_BUF_SIZE] = "";
+    // char out_buf[MAX_BUF_SIZE] = "";
     char path_buf[MAX_BUF_SIZE] = "";
-    
     // Login
     if (pku::recv_str(cinfo_p->sock_fd, in_buf)) {
         goto srv_interact_exit;
     }
     cinfo_p->username = in_buf;
-    printf("Accept a new connection on socket %d. Login as %s\n", cinfo_p->sock_fd, cinfo_p->username.c_str());
+    printf("Accept a new connection on socket [%d]. Login as %s\n", cinfo_p->sock_fd, cinfo_p->username.c_str());
     // Check ./server_dir and ./server_dir/<username>
     cmu::check_and_mkdir(cmu::SRVDIR);
     snprintf(path_buf, MAX_BUF_SIZE, "%s/%s", cmu::SRVDIR, cinfo_p->username.c_str());
     cmu::check_and_mkdir(path_buf);
-
     // Shell loop
-    fprintf(stderr, "[info] Entering shell loop\n");
+    // fprintf(stderr, "[info] Entering shell loop\n");
     while (1) {
         // Receive command
         if (pku::recv_str(cinfo_p->sock_fd, in_buf)) {
             goto srv_interact_exit;
         }
         std::string cmd(in_buf);
-        // Check command validity and run
-        if (cmu::ALL_CMDS.count(cmd)) {
-            // Check permission
-            int ret = cmu::check_permission_srv(cinfo_p, cmd);
-            if (ret == 1) { // Allowed
+        // Check permission
+        int ret = cmu::check_permission_srv(cinfo_p, cmd);
+        if (ret == 1) { // Allowed
+            // Check command validity and run
+            if (cmu::ALL_CMDS.count(cmd)) {
                 if (cmu::srv_cmd_func.find(cmd)->second(cinfo_p)) {
                     goto srv_interact_exit;
                 }
-            } else if (ret == 0) { // Banned
-                continue;
-            } else if (ret == -1) { // Errored
-                goto srv_interact_exit;
-            } else { // Weird cases
-                ERR_EXIT("Unexpected return from permission checking");
+            } else {
+                // fprintf(stderr, "[info] Client's command not found.\n");
             }
-        } else {
-            fprintf(stderr, "[info] Client's command not found.\n");
+        } else if (ret == 0) { // Banned
+            continue;
+        } else if (ret == -1) { // Errored
+            goto srv_interact_exit;
+        } else { // Weird cases
+            ERR_EXIT("Unexpected return from permission checking");
         }
     }
     
@@ -114,7 +112,7 @@ int main(int argc, char *argv[]){
         ERR_EXIT("listen failed\n");
     }
 
-    fprintf(stderr, "[info] Server listening on port %d\n", PORT);
+    // fprintf(stderr, "[info] Server listening on port %d\n", PORT);
 
     // Listen for clients loop
     std::set<std::string> blocklist;
@@ -125,7 +123,7 @@ int main(int argc, char *argv[]){
         if((client_sockfd = accept(server_sockfd, (struct sockaddr *)&client_addr, (socklen_t*)&client_addr_len)) < 0){
             ERR_EXIT("accept failed\n");
         }
-        fprintf(stderr, "[info] new connection accepted\n");
+        // fprintf(stderr, "[info] new connection accepted\n");
         cmu::clientInfo* new_cl_p = new cmu::clientInfo(client_sockfd, &blocklist, &blocklist_lock);
         // new_cl_p->sock_fd = client_sockfd;
         // new_cl_p->srv_blocklist_p = &blocklist;

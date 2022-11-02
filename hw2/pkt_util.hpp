@@ -16,6 +16,8 @@ namespace pku {
         Packet(): data_size(0), data_p(NULL) {}
     };
 
+    const int FILE_SEG_SIZE = 1<<16;
+
     // Return 0 when success, non-0 when error
     int send_packet(const int sock_fd, Packet &pkt);
 
@@ -29,12 +31,14 @@ namespace pku {
     void pack_str(const char src[], Packet &pkt);
     void pack_double(const double &src, Packet &pkt);
     void pack_frame(const cv::Mat &img, Packet &pkt);
+    void pack_segment(const char src[FILE_SEG_SIZE], Packet &pkt, const uint64_t seg_len);
 
     void unpack_uint64(uint64_t &dst, Packet &pkt);
     void unpack_int64(int64_t &dst, Packet &pkt);
     void unpack_str(char dst[], Packet &pkt);
     void unpack_double(double &dst, Packet &pkt);
     void unpack_frame(cv::Mat &img, Packet &pkt);
+    void unpack_segment(char dst[FILE_SEG_SIZE], Packet &pkt);
 
     // Return 0 when success, non-0 when error
     int send_int64(const int sock_fd, const int64_t &num);
@@ -59,6 +63,18 @@ namespace pku {
 
     // Return 0 when success, non-0 when error
     int recv_video(const int sock_fd);
+
+    // Return 0 when success, non-0 when error
+    int send_segment(const int sock_fd, const char msg[], Packet &pkt, const uint64_t seg_len);
+
+    // Return 0 when success, non-0 when error
+    int recv_segment(const int sock_fd, char msg[], Packet &pkt, uint64_t &seg_len);
+
+    // Return 0 when success, non-0 when error
+    int send_file(const int sock_fd, const char pathname[]);
+
+    // Return 0 when success, non-0 when error
+    int recv_file(const int sock_fd, const char pathname[]);
 }
 
 

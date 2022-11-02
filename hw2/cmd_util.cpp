@@ -319,7 +319,7 @@ namespace cmu{
         snprintf(path_buf, MAX_BUF_SIZE, "./server_dir/%s", cinfo_p->username.c_str());
         DIR* user_dir = opendir(path_buf);
         dirent* user_file;
-        fprintf(stderr, "[ls] list %s\n", path_buf);
+        // fprintf(stderr, "[ls] list %s\n", path_buf);
         while ((user_file = readdir(user_dir)) != NULL) {
             if (strncmp(user_file->d_name, ".", MAX_FILENAME_LEN)
                 && strncmp(user_file->d_name, "..", MAX_FILENAME_LEN)) {
@@ -329,7 +329,7 @@ namespace cmu{
                 if (pku::send_str(cinfo_p->sock_fd, user_file->d_name)) {
                     goto ls_srv_err;
                 }
-                fprintf(stderr, "[ls] - %s\n", user_file->d_name);
+                // fprintf(stderr, "[ls] - %s\n", user_file->d_name);
             }
         }
         if (pku::send_str(cinfo_p->sock_fd, STOP_MSG)) {
@@ -344,31 +344,129 @@ namespace cmu{
 
     // Return 0 when success, non-0 when error
     int put_cli(int sock_fd) {
+        char filename[MAX_FILENAME_LEN]="";
+        char path_buf[MAX_BUF_SIZE]="";
+        // Read and send filename to be uploaded;
+        scanf("%s", filename);
+        if (pku::send_str(sock_fd, filename)) {
+            goto put_cli_err;
+        }
+        // Check existence
+        snprintf(path_buf, MAX_BUF_SIZE, "%s/%s", CLIDIR, filename);
+        if (!check_file_exist(path_buf)) {
+            if (pku::send_str(sock_fd, STOP_MSG)) {
+                goto put_cli_err;
+            }
+            printf("%s doesn't exist.\n", filename);
+            return 0;
+        } else {
+            if (pku::send_str(sock_fd, CONT_MSG)) {
+                goto put_cli_err;
+            }
+        }
+        // Send file content
+        printf("putting %s...\n", filename);
+        if (pku::send_file(sock_fd, path_buf)) {
+            goto put_cli_err;
+        }
         return 0;
+    put_cli_err:
+        return 1;
     }
 
     // Return 0 when success, non-0 when error
     int put_srv(clientInfo* cinfo_p) {
+        char filename[MAX_FILENAME_LEN]="";
+        char status[MAX_STATUS_LEN]="";
+        char path_buf[MAX_BUF_SIZE]="";
+        // Receive filename
+        if (pku::recv_str(cinfo_p->sock_fd, filename)) {
+            goto put_srv_err;
+        }
+        // Receive existence status
+        if (pku::recv_str(cinfo_p->sock_fd, status)) {
+            goto put_srv_err;
+        }
+        if (strncmp(status, STOP_MSG, MAX_STATUS_LEN) == 0) {
+            // fprintf(stderr, "[info] File not found on client side\n");
+            return 0;
+        }
+        // Receive file content
+        snprintf(path_buf, MAX_BUF_SIZE, "%s/%s/%s", SRVDIR, cinfo_p->username.c_str(), filename);
+        if (pku::recv_file(cinfo_p->sock_fd, path_buf)) {
+            goto put_srv_err;
+        }
         return 0;
+    put_srv_err:
+        return 1;
     }
 
     // Return 0 when success, non-0 when error
     int get_cli(int sock_fd) {
+        char filename[MAX_FILENAME_LEN]="";
+        char path_buf[MAX_BUF_SIZE]="";
+        char status[MAX_STATUS_LEN]="";
+        // Read and send filename to be downloaded;
+        scanf("%s", filename);
+        if (pku::send_str(sock_fd, filename)) {
+            goto get_cli_err;
+        }
+        // Receive existence status
+        if (pku::recv_str(sock_fd, status)) {
+            goto get_cli_err;
+        }
+        if (strncmp(status, STOP_MSG, MAX_STATUS_LEN) == 0) {
+            printf("%s doesn't exist.\n", filename);
+            return 0;
+        }
+        // Receive file content
+        printf("getting %s...\n", filename);
+        snprintf(path_buf, MAX_BUF_SIZE, "%s/%s", CLIDIR, filename);
+        if (pku::recv_file(sock_fd, path_buf)) {
+            goto get_cli_err;
+        }
         return 0;
+    get_cli_err:
+        return 1;
     }
 
     // Return 0 when success, non-0 when error
     int get_srv(clientInfo* cinfo_p) {
+        char filename[MAX_FILENAME_LEN]="";
+        char path_buf[MAX_BUF_SIZE]="";
+        // Receive filename
+        if (pku::recv_str(cinfo_p->sock_fd, filename)) {
+            goto get_srv_err;
+        }
+        // Check existence
+        snprintf(path_buf, MAX_BUF_SIZE, "%s/%s/%s", SRVDIR, cinfo_p->username.c_str(), filename);
+        if (!check_file_exist(path_buf)) {
+            if (pku::send_str(cinfo_p->sock_fd, STOP_MSG)) {
+                goto get_srv_err;
+            }
+            // fprintf(stderr, "[info] File not found on server side\n");
+            return 0;
+        } else {
+            if (pku::send_str(cinfo_p->sock_fd, CONT_MSG)) {
+                goto get_srv_err;
+            }
+        }
+        // Send file content
+        if (pku::send_file(cinfo_p->sock_fd, path_buf)) {
+            goto get_srv_err;
+        }
         return 0;
+    get_srv_err:
+        return 1;
     }
 
     // Return 0 when success, non-0 when error
     int play_cli(int sock_fd) {
-        char video_file[MAX_FILENAME_LEN]="";
+        char video_path[MAX_FILENAME_LEN]="";
         char status[MAX_STATUS_LEN]="";
         // Read and send video filename
-        scanf("%s", video_file);
-        if (pku::send_str(sock_fd, video_file)) {
+        scanf("%s", video_path);
+        if (pku::send_str(sock_fd, video_path)) {
             goto play_cli_err;
         }
         // Check existence
@@ -376,7 +474,7 @@ namespace cmu{
             goto play_cli_err;
         }
         if (strncmp(status, STOP_MSG, MAX_STATUS_LEN) == 0) {
-            printf("%s doesn't exist\n", video_file);
+            printf("%s doesn't exist.\n", video_path);
             return 0;
         }
         // Check file extension
@@ -384,10 +482,11 @@ namespace cmu{
             goto play_cli_err;
         }
         if (strncmp(status, STOP_MSG, MAX_STATUS_LEN) == 0) {
-            printf("%s is not an mpg file.\n", video_file);
+            printf("%s is not an mpg file.\n", video_path);
             return 0;
         }
         // Receive video stream
+        printf("playing the video...\n");
         if (pku::recv_video(sock_fd) == 1) {
             goto play_cli_err;
         }
@@ -398,14 +497,14 @@ namespace cmu{
 
     // Return 0 when success, non-0 when error
     int play_srv(clientInfo* cinfo_p) {
-        char video_file[MAX_FILENAME_LEN]="";
+        char video_path[MAX_FILENAME_LEN]="";
         char path_buf[MAX_BUF_SIZE]="";
         int extn_idx=-1;
         // Receive video filename
-        if (pku::recv_str(cinfo_p->sock_fd, video_file)) {
+        if (pku::recv_str(cinfo_p->sock_fd, video_path)) {
             goto play_srv_err;
         }
-        snprintf(path_buf, MAX_BUF_SIZE, "%s/%s/%s", SRVDIR, cinfo_p->username.c_str(), video_file);
+        snprintf(path_buf, MAX_BUF_SIZE, "%s/%s/%s", SRVDIR, cinfo_p->username.c_str(), video_path);
         // Check existence
         if (!check_file_exist(path_buf)) { // File doesn't exist
             if (pku::send_str(cinfo_p->sock_fd, STOP_MSG)) {
@@ -418,9 +517,9 @@ namespace cmu{
             }
         }
         // Check file extension
-        extn_idx = strlen(video_file)-4;
+        extn_idx = strlen(video_path)-4;
         if (extn_idx <= 0
-            || strncmp(video_file+extn_idx, MPG_EXTN, MAX_FILENAME_LEN) != 0
+            || strncmp(video_path+extn_idx, MPG_EXTN, MAX_FILENAME_LEN) != 0
         ) { // Not *.mpg
             if (pku::send_str(cinfo_p->sock_fd, STOP_MSG)) {
                 goto play_srv_err;

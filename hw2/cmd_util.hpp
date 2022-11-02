@@ -7,9 +7,9 @@
 
 #include <climits>
 
-#define MAX_UNAME_LEN 16
-#define MAX_STATUS_LEN 32
-#define MAX_FILENAME_LEN NAME_MAX
+// #define MAX_UNAME_LEN 16
+// #define MAX_STATUS_LEN 32
+// #define MAX_FILENAME_LEN NAME_MAX
 
 namespace cmu {
     struct clientInfo {
@@ -32,6 +32,10 @@ namespace cmu {
             lock_p(_lock_p),
             username("") {}
     };
+
+    const int MAX_UNAME_LEN = 16;
+    const int MAX_STATUS_LEN = 32;
+    const int MAX_FILENAME_LEN = NAME_MAX;
 
     const char SHELL_SYMBOL[] = "$ ";
     const char CONT_MSG[] = "cont";
