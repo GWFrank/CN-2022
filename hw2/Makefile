@@ -5,15 +5,11 @@ LINK_PTHREAD = -lpthread
 
 CLIENT = client.cpp
 SERVER = server.cpp
-VIDEO_TEST = video-test.cpp
-PTHREAD = pthread.cpp
 PKT_UTIL = pkt_util.cpp
 CMD_UTIL = cmd_util.cpp
 
 CLI = client
 SER = server
-VT = video-test
-PTH = pthread
 PKU = pkt_util.o
 CMU = cmd_util.o
 
@@ -26,11 +22,6 @@ $(PKU): $(PKT_UTIL) pkt_util.hpp
 	$(CXX) -c $(PKT_UTIL) $(INCLUDE_OPENCV)
 $(CMU): $(CMD_UTIL) cmd_util.hpp
 	$(CXX) -c $(CMD_UTIL) $(INCLUDE_OPENCV)
-
-$(VT): $(VIDEO_TEST)
-	$(CXX) $(VIDEO_TEST) -o $(VT) $(INCLUDE_OPENCV) $(LINK_PTHREAD)
-$(PTH): $(PTHREAD)
-	$(CXX) $(PTHREAD) -o $(PTH) $(LINK_PTHREAD)
 
 .PHONY: clean
 

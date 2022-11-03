@@ -419,10 +419,12 @@ namespace pku {
 
     int send_file(const int sock_fd, const char pathname[]) {
         Packet pkt;
-        int src_fd = open(pathname, O_RDONLY);
+        // int src_fd = open(pathname, O_RDONLY);
+        FILE* src_file = fopen(pathname, "r");
         char file_segment[FILE_SEG_SIZE+1]="";
         uint64_t read_bytes=0, total_bytes=0;
-        while ((read_bytes=read(src_fd, file_segment, FILE_SEG_SIZE)) > 0) {
+        // while ((read_bytes=read(src_fd, file_segment, FILE_SEG_SIZE)) > 0) {
+        while ((read_bytes=fread(file_segment, sizeof(char), FILE_SEG_SIZE, src_file)) > 0) {
             file_segment[read_bytes] = 0; // Treat file segment as string
             // fprintf(stderr, "[info] Reads %d bytes\n", read_bytes);
             total_bytes += read_bytes;
@@ -440,20 +442,23 @@ namespace pku {
 
         if (pkt.data_p != NULL)
             free(pkt.data_p);
-        close(src_fd);
+        // close(src_fd);
+        fclose(src_file);
         return 0;
     send_file_err:
         if (pkt.data_p != NULL)
             free(pkt.data_p);
-        close(src_fd);
+        // close(src_fd);
+        fclose(src_file);
         return 1;
     }
 
     int recv_file(const int sock_fd, const char pathname[]) {
         // fprintf(stderr, "[info] receiving file into %s\n", pathname);
         Packet pkt;
-        int tgt_fd = open(pathname, O_RDWR|O_CREAT|O_TRUNC, S_IRUSR|S_IWUSR);
-        if (tgt_fd < 0) {
+        // int tgt_fd = open(pathname, O_RDWR|O_CREAT|O_TRUNC, S_IRUSR|S_IWUSR);
+        FILE* dst_file = fopen(pathname, "w+");
+        if (!dst_file) {
             ERR_EXIT("open error");
         }
         char file_segment[FILE_SEG_SIZE+1]="";
@@ -469,7 +474,10 @@ namespace pku {
             if (recv_segment(sock_fd, file_segment, pkt, recv_bytes)) {
                 goto recv_file_err;
             }
-            if (write(tgt_fd, file_segment, recv_bytes) < (int64_t)recv_bytes) {
+            // if (write(tgt_fd, file_segment, recv_bytes) < (int64_t)recv_bytes) {
+            //     ERR_EXIT("write error");
+            // }
+            if (fwrite(file_segment, sizeof(char), recv_bytes, dst_file) < (size_t)recv_bytes) {
                 ERR_EXIT("write error");
             }
             total_bytes += recv_bytes;
@@ -478,12 +486,14 @@ namespace pku {
         
         if (pkt.data_p != NULL)
             free(pkt.data_p);
-        close(tgt_fd);
+        // close(tgt_fd);
+        fclose(dst_file);
         return 0;
     recv_file_err:
         if (pkt.data_p != NULL)
             free(pkt.data_p);
-        close(tgt_fd);
+        // close(tgt_fd);
+        fclose(dst_file);
         return 1;
     }
 }

@@ -65,6 +65,7 @@ void* srv_interact(void* arg) {
     }
     
 srv_interact_exit:
+    // fprintf(stderr, "[info] Ending a client session\n");
     close(cinfo_p->sock_fd);
     // free(arg);
     delete (cmu::clientInfo*)arg;
@@ -101,6 +102,10 @@ int main(int argc, char *argv[]){
     // Allow reuse socket to avoid "address already in used" when restarting
     int sock_reuse_addr = 1;
     setsockopt(server_sockfd, SOL_SOCKET, SO_REUSEADDR, &sock_reuse_addr, sizeof(int));
+
+    // Enable keep alive
+    int sock_keep_alive = 1;
+    setsockopt(server_sockfd, SOL_SOCKET, SO_KEEPALIVE, &sock_keep_alive, sizeof(int));
     
     // Bind the server file descriptor to the server address
     if(bind(server_sockfd, (struct sockaddr *)&server_addr , sizeof(server_addr)) < 0){
