@@ -1,4 +1,3 @@
-#include "server.h"
 #include "pkt_util.hpp"
 #include "cmd_util.hpp"
 

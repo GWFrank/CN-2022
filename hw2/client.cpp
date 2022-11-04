@@ -1,4 +1,3 @@
-#include "client.h"
 #include "pkt_util.hpp"
 #include "cmd_util.hpp"
 
