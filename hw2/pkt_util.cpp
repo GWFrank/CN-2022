@@ -33,8 +33,9 @@ namespace pku {
         while (sz>0) {
             // fprintf(stderr, "[debug] %ld bytes left to read\n", sz);
             if((read_byte = read(sock_fd, pkt.data_p + (pkt.data_size-sz), sz)) < 0){
-                // ERR_EXIT("read failed\n");
                 perror("read failed\n");
+                return 1;
+            } else if (read_byte == 0) {
                 return 1;
             }
             sz -= read_byte;
