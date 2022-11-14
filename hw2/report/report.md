@@ -14,15 +14,8 @@ b09902004 資工三 郭懷元
 sequenceDiagram
     participant c as client
     participant s as server
-    
     c->>s: filename
-    
-    note over c: Check file existence<br/>in client_dir
-    
-    break File doesn't exist
-        c --> s: Print file doesn't exist message
-    end
-    
+    note over c: Check file existence
     loop Until EOF reached
         note over c: Try to read a file segment
         alt Read > 0 B
@@ -34,6 +27,8 @@ sequenceDiagram
 
 On alternative paths (e.g. if read more than 0 bytes), a "control message" is also sent in order to indicate which path we are taking.
 
+<div style="page-break-before: always;"></div>
+
 ### Workflow of `get <filename>`
 
 ```mermaid
@@ -41,10 +36,7 @@ sequenceDiagram
     participant c as client
     participant s as server
     c->>s: filename
-    note over s: Check file existence <br/> in server_dir
-    break File doesn't exist
-        c --> s: Print file doesn't exist message
-    end
+    note over s: Check file existence
     loop Until EOF reached
         note over s: Try to read a file segment
         alt Read > 0 B
@@ -68,6 +60,8 @@ sequenceDiagram
 
 A `uint64` number is packed into a `char` array in a little-endian way.
 
+---
+
 <div style="page-break-before: always;"></div>
 
 ## Video streaming workflow
@@ -77,14 +71,7 @@ sequenceDiagram
     participant c as client
     participant s as server
     c->>s: video filename
-    note over s: Check file existence<br/>in server_dir
-    break File doesn't exist
-        c --> s: Print file doesn't exist message
-    end
-    note over s: Check file extension
-    break Isn't an mpg file
-        c --> s: Print invalid file message
-    end
+    note over s: Check existence & file extension
     note over s: Open video
     s->>c: video resolution & frame time
     loop Until end of video reached (a 0-sized frame)
@@ -100,6 +87,8 @@ sequenceDiagram
 
 On alternative paths, a "control message" is also sent in order to indicate which path we are taking.
 
+---
+
 <div style="page-break-before: always;"></div>
 
 ## What is SIGPIPE? Is it possible that SIGPIPE is sent to your process? If so, how do you handle it?
@@ -108,6 +97,8 @@ SIGPIPE is sent when the other end breaks the connection, and the default handle
 
 I used `send()` with `MSG_NOSIGNAL` flag to avoid generating SIGPIPE, as I implemented IO multiplexing with pthreads, and it's basically impossible to determine which thread the SIGPIPE is for. I used the return value from `send()` to know if an error occurs, then gracefully close the socket to end the connection.
 
+---
+
 ## Is blocking I/O equal to synchronized I/O? Please give some examples to explain it.
 
 > Refs:
@@ -115,40 +106,68 @@ I used `send()` with `MSG_NOSIGNAL` flag to avoid generating SIGPIPE, as I imple
 > - [POSIX.1-2017 Definitions](https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap03.html)
 > - [Synchronizing I/O (The GNU C Library)](https://www.gnu.org/software/libc/manual/html_node/Synchronizing-I_002fO.html)
 > - [淺談I/O Model. 前言 | by Carl | Medium](https://medium.com/@clu1022/%E6%B7%BA%E8%AB%87i-o-model-32da09c619e6)
+>
+> Note: In this section, blocking, non-blocking, synchronized, synchronous, and asynchronous are used with the definition in POSIX.
 
-Blocking I/O doesn't equal to synchronized I/O. In fact, at least in Linux, most I/O operations are probably not synchronized. A blocking I/O operation only guarantees the kernel to finish writing to the kernel's **buffer cache**. A synchronized I/O operation requires the data to be written onto the **physical device**.
+### Blocking & Synchronized I/O
 
-For example, calling `write()` in blocking-mode means the data will be written to the buffer cache, but it might not be written onto the hard drive for some time, or until calls to functions like `sync()`.
+Blocking I/O doesn't equal to synchronized I/O. *Blocking* only implies that the function won't return until the request has been fulfilled, but *synchronized* requires guarantee of data integrity.
 
-Another concept is "synchronous/asynchronous", which can be explained through the following diagram.
+For example in normal file outputs on UNIX & UNIX-like OS's, *synchronized* typically means the data is written onto the **physical device**, and can be enforced using `sync()` for the whole filesystem. *blocking* means the data is written to the kernel's **buffer cache**, and can be enabled on a per-file-descriptor basis.
+
+In the case of TCP socket I/O, calling `send()` in blocking mode doesn't mean that the data is immediately sent. The kernel will usually wait until enough data is in its TCP buffer, then send the packet out, to reduce the header overhead of many tiny TCP packets.
+
+<div style="page-break-before: always;"></div>
+
+### Synchronous & Asynchronous I/O
+
+Another concept is synchronous and asynchronous, which can be explained through the following diagrams.
+
+#### Asynchronous I/O
+
+I/O operation won't cause the user thread to be blocked. Their execution is decoupled.
 
 ```mermaid
 sequenceDiagram
-    participant p as process
+    participant t as thread
     participant k as kernel
-    alt Blocking I/O
-        p ->> k: Call write()
-        note over k: Start writing data <br/> into kernel's buffer cache
-        note over k: Still writing...
-        note over k: Finish writing
-        k ->> p: Return normally
-    else Non-blocking I/O
-        p ->> k: Call write()
-        note over k: Start writing data <br/> into kernel's buffer cache
-        k ->> p: Return with error
-        note over k: Still writing...
-        p ->> k: Call write()
-        k ->> p: Return with error
-        note over k: Finish writing
-        p ->> k: Call write()
-        k ->> p: Return normally
-    else Asynchronous I/O
-        p ->> k: Call async version of write()
-        note over k: Add write request to a queue
-        k ->> p: Return normally
-        note over p: Continue execution
-        note over p,k: A few moments later...
-        note over k: Finish the write request
-        k ->> p: Notify the requesting process
+    participant b as buffer cache
+    participant d as disk
+    t ->> k: Call aio_read()
+    note over k: Read request is queued
+    k ->> t: Return
+    par
+        note over t: Continue execution
+    and
+        d ->> b: Read data to<br/>buffer cache
+        b ->> k: Copy data to<br/>thread's buffer
     end
+    k ->> t: Notify the operation<br/>has finished
 ```
+
+<div style="page-break-before: always;"></div>
+
+#### Synchronous I/O
+
+A non-blocking but synchronous I/O call can still block the user thread.
+
+```mermaid
+sequenceDiagram
+    participant t as thread
+    participant k as kernel
+    participant b as buffer cache
+    participant d as disk
+    t ->> k: Call read()
+    note over k: Requested data<br/>not in buffer cache
+    alt if non-blocking
+        k -->> t: Return with error
+    end
+    d ->> b: Read data to<br/>buffer cache
+    alt if non-blocking
+        t -->> k: Call read() again
+    end
+    b ->> k: Copy data to<br/>thread's buffer<br/>(Thread is blocked)
+    k ->> t: Return
+```
+
+---
