@@ -31,8 +31,8 @@ namespace pku {
         const int sock_fd,
         Packet &pkt,
         size_t sz,
-        const struct sockaddr* src_addr,
-        socklen_t src_len
+        struct sockaddr* src_addr,
+        socklen_t* src_len
     ) {
         if (rdt::rdt_recvfrom(sock_fd, pkt.data_p, pkt.data_size, src_addr, src_len) < 0) {
             perror("read failed\n");
@@ -136,8 +136,8 @@ namespace pku {
     int recv_int64(
         const int sock_fd,
         int64_t &num,
-        const struct sockaddr* src_addr,
-        socklen_t src_len
+        struct sockaddr* src_addr,
+        socklen_t* src_len
     ) {
         Packet pkt;
         uint64_t num_len;
@@ -195,8 +195,8 @@ namespace pku {
     int recv_str(
         const int sock_fd,
         char msg[],
-        const struct sockaddr* src_addr,
-        socklen_t src_len
+        struct sockaddr* src_addr,
+        socklen_t* src_len
     ) {
         Packet pkt;
         uint64_t msg_len;
@@ -250,8 +250,8 @@ namespace pku {
         const int sock_fd,
         cv::Mat &img,
         Packet &pkt,
-        const struct sockaddr* src_addr,
-        socklen_t src_len
+        struct sockaddr* src_addr,
+        socklen_t* src_len
     ) {
         int64_t img_size = -1;
         // Receive frame size, this will be 0 at the end of video
@@ -316,7 +316,7 @@ namespace pku {
             count++;
             // Receive key pressed
             int64_t key_pressed;
-            if (recv_packet(sock_fd, pkt, sizeof(int64_t), &tmp_addr, tmp_addr_len) == 1) {
+            if (recv_packet(sock_fd, pkt, sizeof(int64_t), &tmp_addr, &tmp_addr_len) == 1) {
                 goto send_video_err;
             }
             unpack_int64(key_pressed, pkt);
@@ -357,15 +357,15 @@ namespace pku {
         int64_t ret=-1, key_pressed=-1;
 
         // Receive resolution and frame time
-        if (recv_packet(sock_fd, pkt, sizeof(uint64_t), &tmp_addr, tmp_addr_len) == 1) {
+        if (recv_packet(sock_fd, pkt, sizeof(uint64_t), &tmp_addr, &tmp_addr_len) == 1) {
             goto recv_video_err;
         }
         unpack_uint64(width, pkt);
-        if (recv_packet(sock_fd, pkt, sizeof(uint64_t), &tmp_addr, tmp_addr_len) == 1) {
+        if (recv_packet(sock_fd, pkt, sizeof(uint64_t), &tmp_addr, &tmp_addr_len) == 1) {
             goto recv_video_err;
         }
         unpack_uint64(height, pkt);
-        if (recv_packet(sock_fd, pkt, sizeof(uint64_t), &tmp_addr, tmp_addr_len) == 1) {
+        if (recv_packet(sock_fd, pkt, sizeof(uint64_t), &tmp_addr, &tmp_addr_len) == 1) {
             goto recv_video_err;
         }
         unpack_double(frame_time, pkt);
@@ -381,7 +381,7 @@ namespace pku {
         ts_intvl = std::chrono::milliseconds((int64_t)frame_time);
         ts_prev = std::chrono::system_clock::now();
         while (1) {
-            ret = recv_frame(sock_fd, client_img, pkt, &tmp_addr, tmp_addr_len);
+            ret = recv_frame(sock_fd, client_img, pkt, &tmp_addr, &tmp_addr_len);
             if (ret < 0) {
                 goto recv_video_err;
             } else if (ret == 0) {

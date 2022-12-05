@@ -31,8 +31,8 @@ namespace pku {
         const int sock_fd,
         Packet &pkt,
         size_t sz,
-        const struct sockaddr* src_addr,
-        socklen_t src_len
+        struct sockaddr* src_addr,
+        socklen_t* src_len
     );
 
     void alloc_packet_size(Packet &pkt, size_t sz);
@@ -61,8 +61,8 @@ namespace pku {
     int recv_int64(
         const int sock_fd,
         int64_t &num,
-        const struct sockaddr* src_addr,
-        socklen_t src_len
+        struct sockaddr* src_addr,
+        socklen_t* src_len
     );
 
     // Return 0 when success, non-0 when error
@@ -77,8 +77,8 @@ namespace pku {
     int recv_str(
         const int sock_fd,
         char msg[],
-        const struct sockaddr* src_addr,
-        socklen_t src_len
+        struct sockaddr* src_addr,
+        socklen_t* src_len
     );
 
     // Return received frame size
@@ -95,8 +95,8 @@ namespace pku {
         const int sock_fd,
         cv::Mat &img,
         Packet &pkt,
-        const struct sockaddr* src_addr,
-        socklen_t src_len
+        struct sockaddr* src_addr,
+        socklen_t* src_len
     );
 
     // Return 0 when success, non-0 when error

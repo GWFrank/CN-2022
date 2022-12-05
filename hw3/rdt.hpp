@@ -20,8 +20,8 @@ namespace rdt {
         int sock_fd,
         void* buf,
         size_t len,
-        const struct sockaddr* src_addr,
-        socklen_t src_len
+        struct sockaddr* src_addr,
+        socklen_t* src_len
     );
 }
 

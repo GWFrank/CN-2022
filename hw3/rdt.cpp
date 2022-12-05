@@ -1,8 +1,14 @@
 #include "rdt.hpp"
+#include "segment.h"
 
 #include <sys/socket.h>
 
 namespace rdt {
+    int SS_THRESH = 16;
+    int WDW_SZ = 1;
+    int SEG_BUF_SZ = 256;
+    int TIMEOUT = 1;
+
     int rdt_sendto(
         int sock_fd,
         const void* msg,
@@ -10,6 +16,7 @@ namespace rdt {
         const struct sockaddr* dst_addr,
         socklen_t dst_len
     ) {
+
         return 1;
     }
 
@@ -17,8 +24,8 @@ namespace rdt {
         int sock_fd,
         void* buf,
         size_t len,
-        const struct sockaddr* src_addr,
-        socklen_t src_len
+        struct sockaddr* src_addr,
+        socklen_t* src_len
     ) {
         return 1;
     }
