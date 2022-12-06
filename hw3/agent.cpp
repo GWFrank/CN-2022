@@ -16,7 +16,7 @@
  * ports for "agent" first and send a packet by socket previously bound.
  */
 
-#include "segment.h"
+#include "rdt.hpp"
 
 #include <stdio.h>
 #include <time.h>
@@ -60,7 +60,7 @@ void corruptData(char *data, int len) {
 int main(int argc, char *argv[]) {
     int agentsocket, portNum, nBytes;
     float error_rate;
-    SEGMENT s_tmp;
+    rdt::SEGMENT s_tmp;
     struct sockaddr_in sender, agent, receiver, tmp_addr;
     socklen_t sender_size, recv_size, tmp_size;
     char sendIP[50], agentIP[50], recvIP[50], tmpIP[50];

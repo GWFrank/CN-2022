@@ -1,28 +1,36 @@
 #ifndef RDT_HPP
 #define RDT_HPP
 
-#include "segment.h"
-
-#include <sys/socket.h>
+#define SEG_DATA_LEN 1000
 
 namespace rdt {
-    // Return 0 when success, non-0 when error
-    int rdt_sendto(
-        int sock_fd,
-        const void* msg,
-        size_t len,
-        const struct sockaddr* dst_addr,
-        socklen_t dst_len
-    );
+    const int Default_SSthreshold = 16;
+    const int Default_Window_Size = 1;
+    const int Default_Buffer_Size = 256;
+    const int Default_Timeout_Seconds = 1;
 
-    // Return 0 when success, non-0 when error
-    int rdt_recvfrom(
-        int sock_fd,
-        void* buf,
-        size_t len,
-        struct sockaddr* src_addr,
-        socklen_t* src_len
-    );
+    typedef struct {
+        int length;
+        int seqNumber;
+        int ackNumber;
+        int fin;
+        int syn;
+        int ack;
+        unsigned long checksum;
+    } HEADER;
+
+    typedef struct {
+        HEADER header;
+        char data[SEG_DATA_LEN];
+    } SEGMENT;
+
+    // Initialize all members to 0
+    void initHeader(HEADER* header, int seq_number, int ack_number);
+    // Calculate and set checksum of data
+    void setChecksum(SEGMENT* seg);
+    // Return validity of segment
+    int validChecksum(const SEGMENT* seg);
+
 }
 
 #endif

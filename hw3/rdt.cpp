@@ -1,34 +1,25 @@
 #include "rdt.hpp"
-#include "segment.h"
 
-#include <sys/socket.h>
+#include <zlib.h>
 
 namespace rdt {
-    int SS_THRESH = 16;
-    int WDW_SZ = 1;
-    int SEG_BUF_SZ = 256;
-    int TIMEOUT = 1;
-
-    int rdt_sendto(
-        int sock_fd,
-        const void* msg,
-        size_t len,
-        const struct sockaddr* dst_addr,
-        socklen_t dst_len
-    ) {
-
-        return 1;
+    void initHeader(HEADER* header, int seq_number, int ack_number) {
+        header->length = 0;
+        header->seqNumber = seq_number;
+        header->ackNumber = ack_number;
+        header->fin = 0;
+        header->syn = 0;
+        header->ack = 0;
+        header->checksum = 0;
     }
 
-    int rdt_recvfrom(
-        int sock_fd,
-        void* buf,
-        size_t len,
-        struct sockaddr* src_addr,
-        socklen_t* src_len
-    ) {
-        return 1;
+    void setChecksum(SEGMENT* seg) {
+        seg->header.checksum = crc32(0L, (const Bytef *)seg->data, seg->header.length);
+    }
+
+    int validChecksum(const SEGMENT* seg) {
+        unsigned long calc_checksum;
+        calc_checksum = crc32(0L, (const Bytef *)seg->data, seg->header.length);
+        return calc_checksum == seg->header.checksum;
     }
 }
-
-
