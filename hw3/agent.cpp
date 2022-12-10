@@ -26,21 +26,6 @@
 #include <netinet/in.h>
 #include <string.h>
 
-// typedef struct {
-//     int length;
-//     int seqNumber;
-//     int ackNumber;
-//     int fin;
-//     int syn;
-//     int ack;
-//     unsigned long checksum;
-// } HEADER;
-
-// typedef struct {
-//     HEADER header;
-//     char data[1000];
-// } SEGMENT;
-
 void setIP(char *dst, const char *src) {
     if (strcmp(src, "0.0.0.0") == 0 || strcmp(src, "local") == 0 ||
         strcmp(src, "localhost") == 0) {
@@ -175,6 +160,7 @@ int main(int argc, char *argv[]) {
                 }
             } else if (strcmp(ipfrom, recvIP) == 0 && portfrom == recvPort) {
                 /* segment from receiver, ack */
+                // rdt::printHeader(&s_tmp);
                 if (s_tmp.header.ack == 0) {
                     fprintf(stderr,
                             "Receive non-ack segment from \"receiver\"\n");

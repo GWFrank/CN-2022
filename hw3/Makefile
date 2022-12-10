@@ -1,32 +1,32 @@
-CXX = g++
-CXXFLAGS = -Wall -O3 -std=c++17
-CXXFLAGS_DEBUG = -Wall -Og -std=c++17
-LINK_ZLIB = -lz
-INCLUDE_OPENCV = `pkg-config --cflags --libs opencv4`
+CXX=g++
+CXXFLAGS=-Wall -std=c++17
+CXXFLAGS_DEBUG=-Wall -Og -std=c++17
+LINK_ZLIB=-lz
+INCLUDE_OPENCV=`pkg-config --cflags --libs opencv4`
 
 
-AGENT_SRC = agent.cpp
-SEND_SRC = sender.cpp
-RECV_SRC = receiver.cpp
-RDT_SRC = rdt.cpp
+AGENT_SRC=agent.cpp
+SEND_SRC=sender.cpp
+RECV_SRC=receiver.cpp
+RDT_SRC=rdt.cpp
 
-AGENT_EXEC = agent
-SEND_EXEC = sender
-RECV_EXEC = receiver
-RDT_OBJ = rdt.o
+AGENT_EXEC=agent
+SEND_EXEC=sender
+RECV_EXEC=receiver
+RDT_OBJ=rdt.o
 
-CRC32_SRC = crc32.cpp
-CRC32_EXEC = crc32
+CRC32_SRC=crc32.cpp
+CRC32_EXEC=crc32
 
-all: agent send recv
+all: agent sender receiver
 
-agent: $(AGENT_SRC) rdt
+$(AGENT_EXEC): $(AGENT_SRC) $(RDT_OBJ)
 	$(CXX) $(CXXFLAGS) $(AGENT_SRC) -o $(AGENT_EXEC)
-send: $(SEND_SRC) rdt
+$(SEND_EXEC): $(SEND_SRC) $(RDT_OBJ)
 	$(CXX) $(CXXFLAGS) $(SEND_SRC) $(RDT_OBJ) -o $(SEND_EXEC) $(INCLUDE_OPENCV) $(LINK_ZLIB)
-recv: $(RECV_SRC) rdt
+$(RECV_EXEC): $(RECV_SRC) $(RDT_OBJ)
 	$(CXX) $(CXXFLAGS) $(RECV_SRC) $(RDT_OBJ) -o $(RECV_EXEC) $(INCLUDE_OPENCV) $(LINK_ZLIB)
-rdt: $(RDT_SRC) rdt.hpp
+$(RDT_OBJ): $(RDT_SRC) rdt.hpp
 	$(CXX) $(CXXFLAGS) -c $(RDT_SRC) -o $(RDT_OBJ) $(LINK_ZLIB)
 crc32:
 	$(CXX) $(CRC32_SRC) -o $(CRC32_EXEC) $(LINK_ZLIB)
@@ -34,4 +34,4 @@ crc32:
 .PHONY: clean
 
 clean:
-	rm $(AGENT_EXEC) $(CRC32_EXEC)
+	rm $(AGENT_EXEC) $(SEND_EXEC) $(RECV_EXEC) $(RDT_OBJ)
