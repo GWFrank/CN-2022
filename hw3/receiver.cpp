@@ -13,10 +13,10 @@
 void unpack_uint64(uint64 &dst, const rdt::SEGMENT *src) {
     dst = 0;
     for (int i = 0; i < 8; ++i) {
-        fprintf(stderr, "data[%d] = %x\n", i, (unsigned char)src->data[i]);
+        // fprintf(stderr, "data[%d] = %x\n", i, (unsigned char)src->data[i]);
         dst |= (unsigned char)(src->data[i]) << 8 * i;
     }
-    fprintf(stderr, "\n");
+    // fprintf(stderr, "\n");
 }
 
 void unpack_frame(cv::Mat &dst, const rdt::SEGMENT *src, uint64 &idx) {
@@ -107,7 +107,7 @@ void flush_buffer(rdt::SEGMENT receive_buffer[rdt::Default_Buffer_Size],
                 break;
             case 2:
                 unpack_uint64(height, &receive_buffer[i]);
-                fprintf(stderr, "[INFO] resolution=%lux%lu\n", width, height);
+                // fprintf(stderr, "[INFO] resolution=%lux%lu\n", width, height);
                 frame_container = cv::Mat::zeros(height, width, CV_8UC3);
                 if (!frame_container.isContinuous()) {
                     frame_container = frame_container.clone();
@@ -210,7 +210,7 @@ int main(int argc, char *argv[]) {
         // fprintf(stderr, "[INFO] source ip: %s, source port: %d, addr_size:
         // %d\n", source_ip, source_port, source_addr_size);
         if (strcmp(source_ip, agent_ip) != 0 || source_port != agent_port) {
-            fprintf(stderr, "[INFO] received packets not from agent\n");
+            // fprintf(stderr, "[INFO] received packets not from agent\n");
             continue;
         }
 

@@ -41,7 +41,7 @@ void enqueue_frame(std::deque<rdt::SEGMENT> &segment_queue,
     if (frame_size == 0) {  // End of video
         rdt::initSegment(&tmp_seg, next_seq_number);
         tmp_seg.header.fin = 1;
-        fprintf(stderr, "[INFO] Reached end of video\n");
+        // fprintf(stderr, "[INFO] Reached end of video\n");
         strcpy(tmp_seg.data, "Goodbye!");
         tmp_seg.header.length = strlen(tmp_seg.data);
         rdt::setChecksum(&tmp_seg);
@@ -62,7 +62,7 @@ void enqueue_frame(std::deque<rdt::SEGMENT> &segment_queue,
 void enqueue_metadata(std::deque<rdt::SEGMENT> &segment_queue,
                       int &next_seq_number, const uint64 width,
                       const uint64 height) {
-    fprintf(stderr, "[INFO] resolution=%ldx%ld\n", width, height);
+    // fprintf(stderr, "[INFO] resolution=%ldx%ld\n", width, height);
 
     rdt::SEGMENT tmp_seg;
     assert(next_seq_number == 1);
@@ -171,7 +171,7 @@ void receive_acks(std::deque<rdt::SEGMENT> &segment_queue, int &SSthreshold,
         // fprintf(stderr, "[INFO] source ip: %s, source port: %d,
         // addr_size: %d\n", source_ip, source_port, source_addr_size);
         if (strcmp(source_ip, agent_ip) != 0 || source_port != agent_port) {
-            fprintf(stderr, "[INFO] received packets not from agent\n");
+            // fprintf(stderr, "[INFO] received packets not from agent\n");
             continue;
         }
 
@@ -271,10 +271,10 @@ int main(int argc, char *argv[]) {
         fill_queue(segment_queue, current_window, next_seq_number, cap,
                    frame_container);
 
-        fprintf(stderr,
-                "[INFO] Threshold = %d, Current Windows = %d, Congestion "
-                "Avoidance = %d\n",
-                SSthreshold, current_window, current_window >= SSthreshold);
+        // fprintf(stderr,
+        //         "[INFO] Threshold = %d, Current Windows = %d, Congestion "
+        //         "Avoidance = %d\n",
+        //         SSthreshold, current_window, current_window >= SSthreshold);
 
         transmit_segments(segment_queue, current_window, sender_socket,
                           agent_addr, agent_addr_size);

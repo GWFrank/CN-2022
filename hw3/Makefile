@@ -15,9 +15,6 @@ SEND_EXEC=sender
 RECV_EXEC=receiver
 RDT_OBJ=rdt.o
 
-CRC32_SRC=crc32.cpp
-CRC32_EXEC=crc32
-
 all: agent sender receiver
 
 $(AGENT_EXEC): $(AGENT_SRC) $(RDT_OBJ)
@@ -28,8 +25,6 @@ $(RECV_EXEC): $(RECV_SRC) $(RDT_OBJ)
 	$(CXX) $(CXXFLAGS) $(RECV_SRC) $(RDT_OBJ) -o $(RECV_EXEC) $(INCLUDE_OPENCV) $(LINK_ZLIB)
 $(RDT_OBJ): $(RDT_SRC) rdt.hpp
 	$(CXX) $(CXXFLAGS) -c $(RDT_SRC) -o $(RDT_OBJ) $(LINK_ZLIB)
-crc32:
-	$(CXX) $(CRC32_SRC) -o $(CRC32_EXEC) $(LINK_ZLIB)
 
 .PHONY: clean
 
