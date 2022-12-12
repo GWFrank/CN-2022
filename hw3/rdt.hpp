@@ -43,6 +43,8 @@ void setup_socket_timeout(int socket_fd);
 void unblock_socket(int socket_fd);
 void setup_sockaddr(struct sockaddr_in& new_sockaddr, socklen_t& addr_len,
                     char* ip, int port);
+void setIP(char *dst, const char *src);
+
 }  // namespace rdt
 
 #endif

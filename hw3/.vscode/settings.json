@@ -79,6 +79,7 @@
         "agentsocket",
         "finack",
         "ipfrom",
-        "portfrom"
+        "portfrom",
+        "resnd"
     ]
 }

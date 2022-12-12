@@ -75,11 +75,24 @@ void unblock_socket(int socket_fd) {
 
 void setup_sockaddr(struct sockaddr_in& new_sockaddr, socklen_t& addr_len,
                     char* ip, int port) {
+    char real_ip[32];
     new_sockaddr.sin_family = AF_INET;
     new_sockaddr.sin_port = htons(port);
+    setIP(real_ip, ip);
+    strcpy(ip, real_ip);
     new_sockaddr.sin_addr.s_addr = inet_addr(ip);
     memset(new_sockaddr.sin_zero, 0, sizeof(new_sockaddr.sin_zero));
     addr_len = sizeof(new_sockaddr);
+}
+
+void setIP(char *dst, const char *src) {
+    if (strcmp(src, "0.0.0.0") == 0 || strcmp(src, "local") == 0 ||
+        strcmp(src, "localhost") == 0) {
+        sscanf("127.0.0.1", "%s", dst);
+    } else {
+        sscanf(src, "%s", dst);
+    }
+    return;
 }
 
 }  // namespace rdt

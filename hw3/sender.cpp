@@ -87,7 +87,7 @@ void enqueue_metadata(std::deque<rdt::SEGMENT> &segment_queue,
 void fill_queue(std::deque<rdt::SEGMENT> &segment_queue,
                 const int current_window, int &next_seq_number,
                 cv::VideoCapture &cap, cv::Mat &frame_container) {
-    while (segment_queue.size() < current_window) {
+    while (segment_queue.size() < (unsigned) current_window) {
         // Already finished
         if (!segment_queue.empty() && segment_queue.back().header.fin) {
             return;
@@ -114,6 +114,7 @@ void transmit_segments(const std::deque<rdt::SEGMENT> &segment_queue,
                        const int current_window, const int sender_socket,
                        const struct sockaddr_in &agent_addr,
                        socklen_t agent_addr_size) {
+    static int last_sent = 0;
     for (int i = 0; i < current_window; ++i) {
         // rdt::printHeader(&segment_queue[i]);
         int sent_bytes =
@@ -125,11 +126,18 @@ void transmit_segments(const std::deque<rdt::SEGMENT> &segment_queue,
         } else {
             // fprintf(stderr, "[INFO] sendto() sent %d bytes\n", sent_bytes);
         }
+
+        if (segment_queue[i].header.seqNumber > last_sent) {
+            printf("send\t");
+            last_sent++;
+        } else {
+            printf("resnd\t");
+        }
         if (!segment_queue[i].header.fin) {
-            printf("send\tdata\t#%d,\twinSize = %d\n",
+            printf("data\t#%d,\twinSize = %d\n",
                    segment_queue[i].header.seqNumber, current_window);
         } else {
-            printf("send\tfin\n");
+            printf("fin\n");
             return;
         }
     }
@@ -157,7 +165,7 @@ void receive_acks(std::deque<rdt::SEGMENT> &segment_queue, int &SSthreshold,
                 exit(1);
             }
             // fprintf(stderr, "[INFO] timeout\n");
-            printf("time\tout\n");
+            printf("time\tout\t\tthreshold=%d\n", SSthreshold);
             ack_count = 0;
             SSthreshold = (current_window / 2 > 1) ? current_window / 2 : 1;
             current_window = 1;

@@ -26,15 +26,15 @@
 #include <netinet/in.h>
 #include <string.h>
 
-void setIP(char *dst, const char *src) {
-    if (strcmp(src, "0.0.0.0") == 0 || strcmp(src, "local") == 0 ||
-        strcmp(src, "localhost") == 0) {
-        sscanf("127.0.0.1", "%s", dst);
-    } else {
-        sscanf(src, "%s", dst);
-    }
-    return;
-}
+// void setIP(char *dst, const char *src) {
+//     if (strcmp(src, "0.0.0.0") == 0 || strcmp(src, "local") == 0 ||
+//         strcmp(src, "localhost") == 0) {
+//         sscanf("127.0.0.1", "%s", dst);
+//     } else {
+//         sscanf(src, "%s", dst);
+//     }
+//     return;
+// }
 
 void corruptData(char *data, int len) {
     for (int i = 0; i < len; ++i) {
@@ -60,13 +60,13 @@ int main(int argc, char *argv[]) {
         exit(1);
     } else {
         sscanf(argv[1], "%d", &agentPort);  // agent
-        setIP(agentIP, "local");
+        rdt::setIP(agentIP, "local");
 
         sscanf(argv[2], "%[^:]:%d", tmpIP, &sendPort);  // sender
-        setIP(sendIP, tmpIP);
+        rdt::setIP(sendIP, tmpIP);
 
         sscanf(argv[3], "%[^:]:%d", tmpIP, &recvPort);  // receiver
-        setIP(recvIP, tmpIP);
+        rdt::setIP(recvIP, tmpIP);
 
         sscanf(argv[4], "%f", &error_rate);
     }
